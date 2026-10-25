@@ -106,7 +106,7 @@
     #servlet-quiz-app .sq-score-big { font-size: 40px; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1.15; }
     /* 首页 hero */
     #servlet-quiz-app .sq-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 14px 0 6px; }
-    #servlet-quiz-app .sq-appicon { width: 56px; height: 56px; border-radius: 16px; background: var(--primary); color: var(--primary-foreground); display: flex; align-items: center; justify-content: center; font-size: 28px; }
+    #servlet-quiz-app .sq-appicon { width: 56px; height: 56px; border-radius: 16px; background: var(--primary); color: var(--green); display: flex; align-items: center; justify-content: center; font-size: 28px; }
     #servlet-quiz-app .sq-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
     #servlet-quiz-app .sq-chip { padding: 3px 12px; border-radius: 999px; font-size: 12px; background: var(--muted); color: var(--muted-foreground); }
     /* 选项圆标 */
@@ -155,13 +155,25 @@
     /* 工具行 / 统计 / 背题速览 */
     #servlet-quiz-app .sq-tools { display: flex; gap: 8px; margin-top: 10px; }
     #servlet-quiz-app .sq-tools .btn { flex: 1 1 0; }
-    #servlet-quiz-app .sq-search { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--foreground); font: inherit; }
-    #servlet-quiz-app .sq-rev-item { border-top: 1px solid var(--border); padding: 9px 0; }
-    #servlet-quiz-app .sq-rev-item summary { cursor: pointer; }
-    #servlet-quiz-app .sq-rev-body { padding: 8px 10px; margin-top: 6px; border-radius: 8px; background: color-mix(in srgb, var(--green) 8%, transparent); }
+    #servlet-quiz-app .sq-search { width: 100%; padding: 9px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--foreground); font: inherit; }
+    #servlet-quiz-app .sq-rev-meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 10px; }
+    #servlet-quiz-app .sq-rev-item { border: 1px solid var(--border); border-radius: 10px; margin-top: 8px; overflow: hidden; }
+    #servlet-quiz-app .sq-rev-item summary { cursor: pointer; display: flex; gap: 8px; align-items: baseline; padding: 10px 12px; list-style: none; }
+    #servlet-quiz-app .sq-rev-item summary::-webkit-details-marker { display: none; }
+    #servlet-quiz-app .sq-rev-chev { flex: none; color: var(--muted-foreground); font-size: 11px; transition: transform .15s; }
+    #servlet-quiz-app .sq-rev-item[open] .sq-rev-chev { transform: rotate(90deg); }
+    #servlet-quiz-app .sq-rev-num { flex: none; min-width: 2.2em; font-size: 12px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+    #servlet-quiz-app .sq-rev-q { flex: 1; }
+    #servlet-quiz-app .sq-rev-body { padding: 10px 12px; border-top: 1px solid var(--border); background: color-mix(in srgb, var(--green) 7%, transparent); }
+    #servlet-quiz-app .sq-stat-top { display: flex; gap: 10px; margin-top: 12px; }
+    #servlet-quiz-app .sq-stat-cell { flex: 1; text-align: center; padding: 12px 8px; border-radius: 10px; background: var(--muted); }
+    #servlet-quiz-app .sq-stat-val { font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
     #servlet-quiz-app .sq-stat-row { width: 100%; justify-content: flex-start; gap: 10px; margin-top: 8px; }
+    #servlet-quiz-app .sq-stat-rank { flex: none; min-width: 1.6em; font-size: 12px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
     #servlet-quiz-app .sq-stat-name { flex: none; min-width: 5.5em; text-align: left; }
     #servlet-quiz-app .sq-stat-bar { flex: 1 1 0; }
+    #servlet-quiz-app .sq-bar-weak .progress-bar { background: var(--red); }
+    #servlet-quiz-app .sq-bar-ok .progress-bar { background: var(--green); }
     #servlet-quiz-app .sq-start-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
     #servlet-quiz-app .sq-start-btns .btn { width: 100%; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px; min-height: 58px; padding: 9px 16px; }
     #servlet-quiz-app .sq-btn-sub { font-size: 12px; font-weight: 400; color: var(--muted-foreground); }
@@ -909,12 +921,18 @@
       var rows = Object.keys(tags).map(function (tag) {
         return { tag: tag, a: tags[tag][0], c: tags[tag][1] };
       }).sort(function (x, y) { return (x.c / x.a) - (y.c / y.a) || y.a - x.a; });
-      var html = '<div style="margin-top:10px;">累计作答 <strong class="tabular-nums">' + totalA + '</strong> 次 · 总正确率 <strong class="tabular-nums">' + pct + '%</strong><div class="text-small sq-subtitle" style="margin-top:2px;">越靠上越薄弱，点击任意知识点直接专项刷题</div></div>';
-      rows.forEach(function (r) {
+      var html = '<div class="sq-stat-top">' +
+        '<div class="sq-stat-cell"><div class="text-small sq-subtitle">累计作答</div><div class="sq-stat-val">' + totalA + ' 次</div></div>' +
+        '<div class="sq-stat-cell"><div class="text-small sq-subtitle">总正确率</div><div class="sq-stat-val">' + pct + '%</div></div>' +
+        '</div>' +
+        '<div class="text-small sq-subtitle" style="margin-top:10px;">薄弱在前，点击知识点直接专项刷 · <span style="color:var(--red)">红 &lt;60%</span> / 60–79% / <span style="color:var(--green)">绿 ≥80%</span></div>';
+      rows.forEach(function (r, i) {
         var p = Math.round(r.c / r.a * 100);
+        var barCls = (p < 60) ? ' sq-bar-weak' : ((p >= 80) ? ' sq-bar-ok' : '');
         html += '<button type="button" class="btn sq-stat-row" data-tag="' + esc(r.tag) + '">' +
+          '<span class="sq-stat-rank">' + (i + 1) + '</span>' +
           '<span class="sq-stat-name">' + esc(r.tag) + '</span>' +
-          '<span class="progress sq-stat-bar"><span class="progress-bar" style="width:' + p + '%"></span></span>' +
+          '<span class="progress sq-stat-bar' + barCls + '"><span class="progress-bar" style="width:' + p + '%"></span></span>' +
           '<span class="tabular-nums text-small" style="flex:none; min-width:3em; text-align:right;">' + p + '%</span>' +
           '<span class="text-small sq-subtitle" style="flex:none;">' + r.a + ' 次</span></button>';
       });
@@ -931,17 +949,24 @@
     // ===== 背题速览：题干点击展开答案与记忆点，支持搜索 =====
     function renderReview(keyword) {
       var kw = (keyword || '').trim().toLowerCase();
-      var list = BANK.concat(VARIANTS).filter(function (q) {
+      var all = BANK.concat(VARIANTS);
+      var list = all.filter(function (q) {
         if (!kw) return true;
         var hay = (q.q + ' ' + q.tag + ' ' + q.opts[q.ans] + ' ' + q.tip).toLowerCase();
         return hay.indexOf(kw) >= 0;
       });
-      var html = list.length ? '' : '<div class="sq-subtitle" style="margin-top:8px;">没有匹配的题目，换个关键词试试。</div>';
+      var meta = kw ? ('匹配 ' + list.length + ' / ' + all.length + ' 题') : ('共 ' + all.length + ' 题 · 点击题干展开答案');
+      var html = '<div class="sq-rev-meta"><span class="text-small sq-subtitle">' + meta + '</span></div>';
       list.forEach(function (q) {
-        html += '<details class="sq-rev-item"><summary><span class="sq-chip">' + esc(q.tag) + '</span> ' + esc(q.q) + '</summary>' +
+        var num = all.indexOf(q) + 1;
+        html += '<details class="sq-rev-item"><summary>' +
+          '<span class="sq-rev-chev">▶</span>' +
+          '<span class="sq-rev-num">' + num + '</span>' +
+          '<span class="sq-rev-q"><span class="sq-chip">' + esc(q.tag) + '</span> ' + esc(q.q) + '</span></summary>' +
           '<div class="sq-rev-body"><div><span class="sq-ok-ico">✓</span> <strong>' + esc(q.opts[q.ans]) + '</strong></div>' +
           '<div class="text-small sq-subtitle" style="margin-top:4px;">' + esc(q.tip) + '</div></div></details>';
       });
+      if (!list.length) html += '<div class="sq-subtitle" style="margin-top:8px;">没有匹配的题目，换个关键词试试。</div>';
       $('sq-review-list').innerHTML = html;
     }
     function setReviewOpen(open) {
