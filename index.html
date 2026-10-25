@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Servlet 第3章 · 小测模拟器</title>
-<meta name="description" content="Servlet 考点刷题：全真计时模拟、错题本、变式专练">
+<meta name="description" content="Servlet 考点刷题：全真计时模拟、错题歼灭、背题速览、战况统计">
 <style>
   :root { color-scheme: light dark; }
   :root {
@@ -152,6 +152,16 @@
       #servlet-quiz-app .sq-result-actions .btn { flex: 1 1 100%; }
     }
     #servlet-quiz-app .sq-exit { min-height: 34px; padding: 2px 10px; font-size: 12px; }
+    /* 工具行 / 统计 / 背题速览 */
+    #servlet-quiz-app .sq-tools { display: flex; gap: 8px; margin-top: 10px; }
+    #servlet-quiz-app .sq-tools .btn { flex: 1 1 0; }
+    #servlet-quiz-app .sq-search { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); color: var(--foreground); font: inherit; }
+    #servlet-quiz-app .sq-rev-item { border-top: 1px solid var(--border); padding: 9px 0; }
+    #servlet-quiz-app .sq-rev-item summary { cursor: pointer; }
+    #servlet-quiz-app .sq-rev-body { padding: 8px 10px; margin-top: 6px; border-radius: 8px; background: color-mix(in srgb, var(--green) 8%, transparent); }
+    #servlet-quiz-app .sq-stat-row { width: 100%; justify-content: flex-start; gap: 10px; margin-top: 8px; }
+    #servlet-quiz-app .sq-stat-name { flex: none; min-width: 5.5em; text-align: left; }
+    #servlet-quiz-app .sq-stat-bar { flex: 1 1 0; }
     #servlet-quiz-app .sq-start-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
     #servlet-quiz-app .sq-start-btns .btn { width: 100%; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px; min-height: 58px; padding: 9px 16px; }
     #servlet-quiz-app .sq-btn-sub { font-size: 12px; font-weight: 400; color: var(--muted-foreground); }
@@ -180,6 +190,10 @@
       <button type="button" class="btn" id="sq-btn-practice"><span>练习模式 · 核心 33 题</span><span class="sq-btn-sub">不限时，答完立即看解析与记忆点</span></button>
       <button type="button" class="btn" id="sq-btn-variant"><span>变式专练 · 61 题全覆盖</span><span class="sq-btn-sub">每个考点的子知识点全部兜底</span></button>
       <button type="button" class="btn" id="sq-btn-wrong" hidden></button>
+    </div>
+    <div class="sq-tools">
+      <button type="button" class="btn btn-ghost" id="sq-btn-review">背题速览</button>
+      <button type="button" class="btn btn-ghost" id="sq-btn-stats">战况统计</button>
     </div>
     <div class="text-small sq-subtitle sq-kbd-hint" style="margin-top:12px;">快捷键：数字 1–4 选答案，回车 / 空格 立即进下一题 · 全真模式答完自动跳题，最后 1 分钟倒计时变红</div>
   </div>
@@ -243,6 +257,29 @@
       <div class="text-small sq-subtitle" style="margin-bottom:8px;">睡前把这里过一遍，明天考前再看一眼。</div>
       <div id="sq-wrong-list"></div>
     </div>
+  </div>
+
+  <!-- 战况统计 -->
+  <div class="sq-screen card sq-cardpad" id="sq-stats" hidden>
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+      <h2 style="margin:0;">战况统计</h2>
+      <button type="button" class="btn btn-ghost sq-exit" id="sq-stats-back">‹ 返回</button>
+    </div>
+    <div id="sq-stats-body" style="margin-top:8px;"></div>
+  </div>
+
+  <!-- 背题速览 -->
+  <div class="sq-screen card sq-cardpad" id="sq-review" hidden>
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+      <h2 style="margin:0;">背题速览</h2>
+      <button type="button" class="btn btn-ghost sq-exit" id="sq-review-back">‹ 返回</button>
+    </div>
+    <input type="search" class="sq-search" id="sq-review-search" style="margin-top:10px;" placeholder="搜题干、知识点、答案关键词…" aria-label="搜索题目">
+    <div class="sq-tools" style="margin-top:8px;">
+      <button type="button" class="btn btn-ghost" id="sq-review-expand">全部展开</button>
+      <button type="button" class="btn btn-ghost" id="sq-review-collapse">全部收起</button>
+    </div>
+    <div id="sq-review-list" style="margin-top:6px;"></div>
   </div>
 
   <script>
@@ -450,7 +487,7 @@
     var run = null; // {queue, idx, mode, correct, wrongIds, wrongDetail, answeredMs, cur:{q, order, qStart, answered, timerId, lockAdvance}}
 
     var $ = function (id) { return document.getElementById(id); };
-    var screens = { start: $('sq-start'), quiz: $('sq-quiz'), result: $('sq-result') };
+    var screens = { start: $('sq-start'), quiz: $('sq-quiz'), result: $('sq-result'), stats: $('sq-stats'), review: $('sq-review') };
     function show(name) {
       Object.keys(screens).forEach(function (k) { screens[k].hidden = (k !== name); });
     }
@@ -467,22 +504,32 @@
     }
 
     // ===== 持久化错题本（会话内恢复） =====
-    function loadSaved() {
+    function loadState() {
       try {
         var st = window.zcode && window.zcode.widgetState;
-        if (st && st.privateContent && Array.isArray(st.privateContent.wrongIds)) {
-          return st.privateContent.wrongIds.filter(function (id) {
+        var pc = st && st.privateContent;
+        if (pc) {
+          var ids = Array.isArray(pc.wrongIds) ? pc.wrongIds.filter(function (id) {
             return Object.prototype.hasOwnProperty.call(ALLQ, id);
-          });
+          }) : [];
+          return { wrongIds: ids, stats: (pc.stats && typeof pc.stats === 'object') ? pc.stats : {} };
         }
       } catch (e) {}
-      return [];
+      return { wrongIds: [], stats: {} };
+    }
+    function loadSaved() { return loadState().wrongIds; }
+    var STATS = loadState().stats;
+    function recordStat(qid, right) {
+      var s = STATS[qid];
+      if (!s) { s = STATS[qid] = [0, 0]; }
+      s[0]++;
+      if (right) s[1]++;
     }
     function saveState() {
       try {
         if (window.zcode && window.zcode.setWidgetState) {
           var ids = (run && run.wrongAllTime) ? run.wrongAllTime : loadSaved();
-          window.zcode.setWidgetState({ privateContent: { wrongIds: ids } }).catch(function () {});
+          window.zcode.setWidgetState({ privateContent: { wrongIds: ids, stats: STATS } }).catch(function () {});
         }
       } catch (e) {}
     }
@@ -498,7 +545,7 @@
       var btn = $('sq-btn-wrong');
       if (saved.length > 0) {
         btn.hidden = false;
-        btn.textContent = '只刷错题（' + saved.length + ' 题）';
+        btn.textContent = '错题歼灭（' + saved.length + ' 题 · 连刷到清零）';
       } else {
         btn.hidden = true;
       }
@@ -529,8 +576,15 @@
     $('sq-btn-variant').addEventListener('click', function () { startRun('practice', BANK.concat(VARIANTS)); });
     $('sq-btn-wrong').addEventListener('click', function () {
       var list = loadSaved().map(function (id) { return ALLQ[id]; }).filter(Boolean);
-      if (list.length) startRun('exam', list);
+      if (list.length) startDrill(list);
     });
+    $('sq-btn-review').addEventListener('click', function () { renderReview(''); show('review'); });
+    $('sq-btn-stats').addEventListener('click', function () { renderStats(); show('stats'); });
+    $('sq-stats-back').addEventListener('click', goHome);
+    $('sq-review-back').addEventListener('click', goHome);
+    $('sq-review-search').addEventListener('input', function () { renderReview(this.value); });
+    $('sq-review-expand').addEventListener('click', function () { setReviewOpen(true); });
+    $('sq-review-collapse').addEventListener('click', function () { setReviewOpen(false); });
 
     // ===== 答题 =====
     function renderQuestion() {
@@ -538,7 +592,9 @@
       var order = shuffle([0, 1, 2, 3]);
       run.cur = { q: item, order: order, qStart: Date.now(), answered: false, timerId: null, advanceId: null };
 
-      $('sq-progress').textContent = '第 ' + (run.idx + 1) + '/' + run.queue.length + ' 题';
+      $('sq-progress').textContent = (run.mode === 'drill')
+        ? '剩余 ' + (run.queue.length - run.idx) + ' 题'
+        : '第 ' + (run.idx + 1) + '/' + run.queue.length + ' 题';
       $('sq-tag').textContent = item.tag;
       $('sq-live-score').textContent = String(run.correct);
       $('sq-question').textContent = item.q;
@@ -605,15 +661,25 @@
       if (right) {
         run.correct++;
         $('sq-live-score').textContent = String(run.correct);
+      } else if (run.mode === 'drill') {
+        run.queue.push(cur.q);
+        if (!run.wrongDetail.some(function (w) { return w.id === cur.q.id; })) {
+          recordWrong(cur.q, cur.q.opts[cur.order[dispIdx]]);
+        }
       } else {
         recordWrong(cur.q, cur.q.opts[cur.order[dispIdx]]);
       }
+      if (run.mode === 'drill' && right) run.drillCleared.push(cur.q.id);
+      recordStat(cur.q.id, right);
+      saveState();
       showFeedback(right, null);
 
       if (run.mode === 'full') {
         cur.advanceId = setTimeout(next, 700);
       } else if (run.mode === 'exam') {
         cur.advanceId = setTimeout(next, 1500);
+      } else if (run.mode === 'drill') {
+        cur.advanceId = setTimeout(next, 1100);
       } else {
         $('sq-btn-next').hidden = false;
         $('sq-btn-next').focus();
@@ -628,6 +694,8 @@
       run.answeredCount++;
       lockOptions(null);
       recordWrong(cur.q, null);
+      recordStat(cur.q.id, false);
+      saveState();
       showFeedback(false, '超时未答');
       cur.advanceId = setTimeout(next, 1500);
     }
@@ -699,30 +767,44 @@
       run.done = true;
       if (run.totalTimerId) { clearTimeout(run.totalTimerId); run.totalTimerId = null; }
       if (run.cur && run.cur.timerId) { clearTimeout(run.cur.timerId); run.cur.timerId = null; }
-      var total = run.queue.length;
-      var score = run.correct;
+      var total = (run.mode === 'drill') ? run.base.length : run.queue.length;
+      var score = (run.mode === 'drill') ? run.drillCleared.length : run.correct;
       var wrongN = total - score;
       var avg = run.answeredCount ? (run.answeredMs / run.answeredCount / 1000) : 0;
 
       // 累计错题本（含本场之前存的）
       var ids = run.wrongIds.slice();
       loadSaved().forEach(function (id) { if (ids.indexOf(id) < 0) ids.push(id); });
+      if (run.mode === 'drill') {
+        run.drillCleared.forEach(function (id) {
+          var i = ids.indexOf(id);
+          if (i >= 0) ids.splice(i, 1);
+        });
+        var pickedMap = {};
+        run.wrongDetail.forEach(function (w) { pickedMap[w.id] = w.picked; });
+        run.wrongDetail = run.base.filter(function (q) {
+          return run.drillCleared.indexOf(q.id) < 0;
+        }).map(function (q) {
+          return { id: q.id, tag: q.tag, q: q.q, picked: pickedMap[q.id] || null, ansText: q.opts[q.ans], tip: q.tip };
+        });
+      }
       run.wrongAllTime = ids;
       saveState();
 
       $('sq-score').textContent = String(score);
       $('sq-total').textContent = String(total);
-      var modeName = run.mode === 'full' ? '全真模式' : (run.mode === 'exam' ? '单题计时' : '练习模式');
+      var modeName = run.mode === 'full' ? '全真模式' : (run.mode === 'exam' ? '单题计时' : (run.mode === 'drill' ? '错题歼灭' : '练习模式'));
       var usedSec = Math.round((Date.now() - run.startAt) / 1000);
       var usedStr = Math.floor(usedSec / 60) + ':' + (usedSec % 60 < 10 ? '0' : '') + (usedSec % 60);
       var pct = total ? Math.round(score / total * 100) : 0;
       var acc = $('sq-acc');
-      acc.textContent = '正确率 ' + pct + '%' + (wrongN === 0 ? ' · 全对，漂亮！' : '');
+      acc.textContent = '正确率 ' + pct + '%' + (wrongN === 0 ? (run.mode === 'drill' ? ' · 错题全部歼灭！' : ' · 全对，漂亮！') : '');
       acc.className = 'sq-acc ' + (pct >= 80 ? 'good' : (pct >= 60 ? 'mid' : 'bad'));
       $('sq-result-chips').innerHTML =
         '<span class="sq-chip">' + modeName + '</span>' +
         '<span class="sq-chip">用时 ' + usedStr + '</span>' +
         '<span class="sq-chip">平均 ' + avg.toFixed(1) + ' 秒/题</span>' +
+        (run.mode === 'drill' ? '<span class="sq-chip">清零 ' + score + '/' + total + '</span>' : '') +
         (wrongN === 0 ? '' : '<span class="sq-chip">错/未答 ' + wrongN + ' 题</span>');
 
       var list = $('sq-wrong-list');
@@ -745,7 +827,7 @@
       var b2 = $('sq-btn-wrong2');
       if (ids.length > 0) {
         b2.hidden = false;
-        b2.textContent = '只刷错题（' + ids.length + ' 题）';
+        b2.textContent = '错题歼灭（' + ids.length + ' 题）';
       } else {
         b2.hidden = true;
       }
@@ -753,12 +835,16 @@
     }
 
     $('sq-btn-again').addEventListener('click', function () {
-      startRun(run.mode, run.base);
+      if (run.mode === 'drill') {
+        startDrill(run.wrongAllTime.map(function (id) { return ALLQ[id]; }).filter(Boolean));
+      } else {
+        startRun(run.mode, run.base);
+      }
     });
     $('sq-btn-wrong2').addEventListener('click', function () {
       var ids = run.wrongAllTime || loadSaved();
       var list = ids.map(function (id) { return ALLQ[id]; }).filter(Boolean);
-      if (list.length) startRun('exam', list);
+      if (list.length) startDrill(list);
     });
     function goHome() {
       if (run) {
@@ -777,10 +863,90 @@
     $('sq-btn-exit').addEventListener('click', goHome);
     $('sq-btn-home').addEventListener('click', goHome);
     window.sqHandleBack = function () {
-      if (screens.quiz.hidden && screens.result.hidden) return false;
+      if (!screens.start.hidden) return false;
       goHome();
       return true;
     };
+
+    // ===== 错题歼灭：错题连刷，答错重新入队，答对清零 =====
+    function startDrill(list) {
+      run = {
+        mode: 'drill',
+        base: list.slice(),
+        queue: shuffle(list),
+        idx: 0,
+        correct: 0,
+        wrongIds: [],
+        wrongDetail: [],
+        drillCleared: [],
+        answeredMs: 0,
+        answeredCount: 0,
+        startAt: Date.now(),
+        totalTimerId: null,
+        done: false
+      };
+      show('quiz');
+      renderQuestion();
+    }
+
+    // ===== 战况统计：薄弱知识点排行，点击专项直刷 =====
+    function renderStats() {
+      var body = $('sq-stats-body');
+      var tags = {}, totalA = 0, totalC = 0;
+      Object.keys(STATS).forEach(function (qid) {
+        var q = ALLQ[qid];
+        if (!q) return;
+        var s = STATS[qid];
+        totalA += s[0]; totalC += s[1];
+        var t = tags[q.tag] || (tags[q.tag] = [0, 0]);
+        t[0] += s[0]; t[1] += s[1];
+      });
+      if (totalA === 0) {
+        body.innerHTML = '<div class="sq-subtitle" style="margin-top:10px;">还没有答题记录——先去刷一轮，回来就能看到薄弱知识点排行。</div>';
+        return;
+      }
+      var pct = Math.round(totalC / totalA * 100);
+      var rows = Object.keys(tags).map(function (tag) {
+        return { tag: tag, a: tags[tag][0], c: tags[tag][1] };
+      }).sort(function (x, y) { return (x.c / x.a) - (y.c / y.a) || y.a - x.a; });
+      var html = '<div style="margin-top:10px;">累计作答 <strong class="tabular-nums">' + totalA + '</strong> 次 · 总正确率 <strong class="tabular-nums">' + pct + '%</strong><div class="text-small sq-subtitle" style="margin-top:2px;">越靠上越薄弱，点击任意知识点直接专项刷题</div></div>';
+      rows.forEach(function (r) {
+        var p = Math.round(r.c / r.a * 100);
+        html += '<button type="button" class="btn sq-stat-row" data-tag="' + esc(r.tag) + '">' +
+          '<span class="sq-stat-name">' + esc(r.tag) + '</span>' +
+          '<span class="progress sq-stat-bar"><span class="progress-bar" style="width:' + p + '%"></span></span>' +
+          '<span class="tabular-nums text-small" style="flex:none; min-width:3em; text-align:right;">' + p + '%</span>' +
+          '<span class="text-small sq-subtitle" style="flex:none;">' + r.a + ' 次</span></button>';
+      });
+      body.innerHTML = html;
+      body.querySelectorAll('.sq-stat-row').forEach(function (b) {
+        b.addEventListener('click', function () { startTagPractice(b.getAttribute('data-tag')); });
+      });
+    }
+    function startTagPractice(tag) {
+      var list = BANK.concat(VARIANTS).filter(function (q) { return q.tag === tag; });
+      if (list.length) startRun('practice', list);
+    }
+
+    // ===== 背题速览：题干点击展开答案与记忆点，支持搜索 =====
+    function renderReview(keyword) {
+      var kw = (keyword || '').trim().toLowerCase();
+      var list = BANK.concat(VARIANTS).filter(function (q) {
+        if (!kw) return true;
+        var hay = (q.q + ' ' + q.tag + ' ' + q.opts[q.ans] + ' ' + q.tip).toLowerCase();
+        return hay.indexOf(kw) >= 0;
+      });
+      var html = list.length ? '' : '<div class="sq-subtitle" style="margin-top:8px;">没有匹配的题目，换个关键词试试。</div>';
+      list.forEach(function (q) {
+        html += '<details class="sq-rev-item"><summary><span class="sq-chip">' + esc(q.tag) + '</span> ' + esc(q.q) + '</summary>' +
+          '<div class="sq-rev-body"><div><span class="sq-ok-ico">✓</span> <strong>' + esc(q.opts[q.ans]) + '</strong></div>' +
+          '<div class="text-small sq-subtitle" style="margin-top:4px;">' + esc(q.tip) + '</div></div></details>';
+      });
+      $('sq-review-list').innerHTML = html;
+    }
+    function setReviewOpen(open) {
+      $('sq-review-list').querySelectorAll('details').forEach(function (d) { d.open = open; });
+    }
 
     // ===== 键盘 =====
     document.addEventListener('keydown', function (ev) {
