@@ -90,12 +90,26 @@
     #servlet-quiz-app .sq-title { font-weight: 500; margin-bottom: 4px; }
     #servlet-quiz-app .sq-subtitle { color: var(--muted-foreground); }
     #servlet-quiz-app .sq-options { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
-    #servlet-quiz-app .opt-btn { width: 100%; text-align: left; min-height: 44px; display: flex; align-items: baseline; gap: 10px; white-space: normal; line-height: 1.45; }
-    #servlet-quiz-app .opt-btn .opt-key { flex: none; font-size: 12px; color: var(--muted-foreground); }
-    #servlet-quiz-app .opt-btn.is-correct { border-color: var(--green); box-shadow: inset 0 0 0 1px var(--green); color: var(--foreground); }
-    #servlet-quiz-app .opt-btn.is-wrong { border-color: var(--red); box-shadow: inset 0 0 0 1px var(--red); color: var(--foreground); }
-    #servlet-quiz-app .opt-btn:disabled { cursor: default; opacity: 1; }
-    #servlet-quiz-app .opt-btn:disabled:not(.is-correct):not(.is-wrong) { opacity: .55; }
+    /* 答题页：页头条 + 题目卡 + 选项独立卡（学习通式分层） */
+    #servlet-quiz-app .sq-topbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+    #servlet-quiz-app .sq-topbar-title { font-weight: 500; }
+    #servlet-quiz-app .sq-timeline { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    #servlet-quiz-app .sq-qhead { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+    #servlet-quiz-app .sq-optcard {
+      display: flex; align-items: flex-start; gap: 10px; width: 100%; text-align: left;
+      border: 1px solid var(--border); border-radius: 12px; background: var(--card); color: var(--foreground);
+      padding: 12px 14px; font: inherit; cursor: pointer; min-height: 48px; line-height: 1.45; white-space: normal;
+    }
+    #servlet-quiz-app .sq-optcard:hover { border-color: var(--muted-foreground); }
+    #servlet-quiz-app .sq-optcard:disabled { cursor: default; }
+    #servlet-quiz-app .sq-optcard:disabled:not(.is-correct):not(.is-wrong) { opacity: .55; }
+    #servlet-quiz-app .sq-optcard.is-correct { border-color: var(--green); box-shadow: inset 0 0 0 1px var(--green); }
+    #servlet-quiz-app .sq-optcard.is-wrong { border-color: var(--red); box-shadow: inset 0 0 0 1px var(--red); }
+    #servlet-quiz-app .opt-key { flex: none; width: 26px; height: 26px; margin-top: 1px; border-radius: 999px; border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; font-size: 13px; color: var(--muted-foreground); }
+    #servlet-quiz-app .opt-text { flex: 1; }
+    #servlet-quiz-app .sq-optcard.is-correct .opt-key { border-color: var(--green); color: var(--green); }
+    #servlet-quiz-app .sq-optcard.is-wrong .opt-key { border-color: var(--red); color: var(--red); }
+    /* 选项状态色由 .sq-optcard 规则提供 */
     #servlet-quiz-app .sq-timer-num { font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
     #servlet-quiz-app .sq-timer-num.low { color: var(--red); }
     #servlet-quiz-app .sq-feedback { margin-top: 12px; border-radius: 8px; padding: 10px 12px; }
@@ -109,12 +123,7 @@
     #servlet-quiz-app .sq-appicon { width: 56px; height: 56px; border-radius: 16px; background: var(--primary); color: var(--green); display: flex; align-items: center; justify-content: center; font-size: 28px; }
     #servlet-quiz-app .sq-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
     #servlet-quiz-app .sq-chip { padding: 3px 12px; border-radius: 999px; font-size: 12px; background: var(--muted); color: var(--muted-foreground); }
-    /* 选项圆标 */
-    #servlet-quiz-app .opt-btn { align-items: flex-start; border-radius: 12px; padding: 10px 14px; }
-    #servlet-quiz-app .opt-key { flex: none; width: 26px; height: 26px; margin-top: 1px; border-radius: 999px; border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; }
-    #servlet-quiz-app .opt-text { flex: 1; }
-    #servlet-quiz-app .opt-btn.is-correct .opt-key { border-color: var(--green); color: var(--green); }
-    #servlet-quiz-app .opt-btn.is-wrong .opt-key { border-color: var(--red); color: var(--red); }
+    /* 选项圆标（字母 A–D） */
     /* 答题反馈 */
     #servlet-quiz-app .sq-feedback { display: flex; gap: 10px; align-items: flex-start; }
     #servlet-quiz-app .sq-fb-ico { flex: none; font-weight: 500; }
@@ -133,16 +142,9 @@
     /* ===== 触屏与窄屏适配 ===== */
     #servlet-quiz-app .btn { -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }
     #servlet-quiz-app .sq-cardpad { --sq-pad-x: 20px; --sq-pad-y: 20px; padding: var(--sq-pad-y) var(--sq-pad-x); }
-    #servlet-quiz-app .sq-sticky {
-      position: sticky; top: 0; z-index: 5;
-      margin: calc(-1 * var(--sq-pad-y)) calc(-1 * var(--sq-pad-x)) 12px;
-      padding: calc(var(--sq-pad-y) / 2) var(--sq-pad-x) 8px;
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-    }
     @media (pointer: coarse) {
       #servlet-quiz-app .btn { min-height: 44px; }
-      #servlet-quiz-app .opt-btn { min-height: 48px; }
+      #servlet-quiz-app .sq-optcard { min-height: 52px; }
       #servlet-quiz-app .sq-timer-num { font-size: 22px; }
       #servlet-quiz-app .sq-kbd-hint { display: none; }
     }
@@ -207,41 +209,38 @@
       <button type="button" class="btn btn-ghost" id="sq-btn-review">背题速览</button>
       <button type="button" class="btn btn-ghost" id="sq-btn-stats">战况统计</button>
     </div>
-    <div class="text-small sq-subtitle sq-kbd-hint" style="margin-top:12px;">快捷键：数字 1–4 选答案，回车 / 空格 立即进下一题 · 全真模式答完自动跳题，最后 1 分钟倒计时变红</div>
+    <div class="text-small sq-subtitle sq-kbd-hint" style="margin-top:12px;">快捷键：数字 1–4 或字母 A–D 选答案，回车 / 空格 立即进下一题 · 全真模式答完自动跳题</div>
   </div>
 
   <!-- 答题页 -->
-  <div class="sq-screen card sq-cardpad" id="sq-quiz" hidden>
-    <div class="sq-sticky">
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
-      <div style="display:flex; align-items:center; gap:6px;">
-        <button type="button" class="btn btn-ghost sq-exit" id="sq-btn-exit" aria-label="退出本局返回首页">‹ 退出</button>
-        <span class="text-small sq-subtitle tabular-nums" id="sq-progress">第 1/33 题</span>
-      </div>
-      <div style="display:flex; align-items:center; gap:12px;">
-        <span class="viz-badge" id="sq-tag">知识点</span>
-        <span class="text-small sq-subtitle">答对 <span id="sq-live-score" class="tabular-nums">0</span></span>
-      </div>
+  <div class="sq-screen" id="sq-quiz" hidden>
+    <div class="sq-topbar">
+      <button type="button" class="btn btn-ghost sq-exit" id="sq-btn-exit" aria-label="退出本局返回首页">‹ 退出</button>
+      <span class="sq-topbar-title">小测模拟</span>
+      <span class="text-small sq-subtitle">答对 <span id="sq-live-score" class="tabular-nums">0</span></span>
     </div>
 
-    <div id="sq-timer-wrap" style="display:flex; align-items:center; gap:10px; margin-top:12px;">
-      <i data-lucide="timer" aria-hidden="true"></i>
+    <div id="sq-total-wrap" class="sq-timeline" style="display:none;">
+      <div class="progress" style="flex:1;" role="progressbar" aria-label="总剩余时间" aria-valuemin="0" aria-valuemax="480" aria-valuenow="480" id="sq-total-role">
+        <div class="progress-bar" id="sq-total-bar" style="width:100%;"></div>
+      </div>
+      <span class="sq-timer-num tabular-nums" id="sq-total-num">8:00</span>
+    </div>
+    <div id="sq-timer-wrap" class="sq-timeline" style="display:none;">
       <div class="progress" style="flex:1;" role="progressbar" aria-label="剩余时间" aria-valuemin="0" aria-valuemax="15" aria-valuenow="15" id="sq-timer-role">
         <div class="progress-bar" id="sq-timer-bar" style="width:100%;"></div>
       </div>
       <span class="sq-timer-num tabular-nums" id="sq-timer-num">15</span>
     </div>
 
-    <div id="sq-total-wrap" style="display:none; align-items:center; gap:10px; margin-top:12px;">
-      <i data-lucide="alarm-clock" aria-hidden="true"></i>
-      <div class="progress" style="flex:1;" role="progressbar" aria-label="总剩余时间" aria-valuemin="0" aria-valuemax="480" aria-valuenow="480" id="sq-total-role">
-        <div class="progress-bar" id="sq-total-bar" style="width:100%;"></div>
+    <div class="card sq-cardpad">
+      <div class="sq-qhead">
+        <span class="text-small sq-subtitle tabular-nums" id="sq-progress">第 1/33 题</span>
+        <span class="viz-badge" id="sq-tag">单选题</span>
       </div>
-      <span class="sq-timer-num tabular-nums" id="sq-total-num">8:00</span>
-    </div>
+      <div id="sq-question" aria-live="polite" style="font-weight:500;"></div>
     </div>
 
-    <div id="sq-question" aria-live="polite" style="margin-top:16px; font-weight:500;"></div>
     <div class="sq-options" id="sq-options" role="group" aria-label="选项"></div>
     <div id="sq-feedback-wrap" aria-live="polite"></div>
     <div style="margin-top:12px; display:flex; justify-content:flex-end;">
@@ -616,8 +615,8 @@
       order.forEach(function (origIdx, dispIdx) {
         var b = document.createElement('button');
         b.type = 'button';
-        b.className = 'btn opt-btn';
-        b.innerHTML = '<span class="opt-key">' + (dispIdx + 1) + '</span><span class="opt-text">' + esc(item.opts[origIdx]) + '</span>';
+        b.className = 'sq-optcard';
+        b.innerHTML = '<span class="opt-key">' + 'ABCD'[dispIdx] + '</span><span class="opt-text">' + esc(item.opts[origIdx]) + '</span>';
         b.addEventListener('click', function () { answer(dispIdx); });
         box.appendChild(b);
       });
@@ -648,7 +647,7 @@
     }
 
     function lockOptions(pickedIdx) {
-      var btns = $('sq-options').querySelectorAll('.opt-btn');
+      var btns = $('sq-options').querySelectorAll('.sq-optcard');
       var cur = run.cur;
       btns.forEach(function (b, i) {
         b.disabled = true;
@@ -980,10 +979,11 @@
       if (!cur) return;
       var k = ev.key;
       if (!cur.answered) {
-        var map = { '1': 0, '2': 1, '3': 2, '4': 3 };
-        if (k in map) {
-          var btns = $('sq-options').querySelectorAll('.opt-btn');
-          if (btns[map[k]] && !btns[map[k]].disabled) answer(map[k]);
+        var map = { '1': 0, '2': 1, '3': 2, '4': 3, 'a': 0, 'b': 1, 'c': 2, 'd': 3 };
+        var kl = k.toLowerCase();
+        if (kl in map) {
+          var btns = $('sq-options').querySelectorAll('.sq-optcard');
+          if (btns[map[kl]] && !btns[map[kl]].disabled) answer(map[kl]);
           ev.preventDefault();
         }
       } else {
