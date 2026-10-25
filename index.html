@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Servlet 第3章 · 小测模拟器</title>
+<meta name="description" content="Servlet 考点刷题：全真计时模拟、错题本、变式专练">
+<meta name="theme-color" content="#1f2937">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="小测模拟">
+<style>
+  :root { color-scheme: light dark; }
+  :root {
+    --background:#f6f7f9; --foreground:#1a1d21;
+    --card:#ffffff; --card-foreground:#1a1d21;
+    --muted:#eceef1; --muted-foreground:#5c6470; --border:#d8dce2;
+    --primary:#1f2937; --primary-foreground:#ffffff;
+    --green:#1a9c6b; --red:#d64545;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background:#15171b; --foreground:#e8eaee;
+      --card:#1e2126; --card-foreground:#e8eaee;
+      --muted:#2a2e35; --muted-foreground:#a2aab6; --border:#343941;
+      --primary:#e8eaee; --primary-foreground:#15171b;
+      --green:#3ecf8e; --red:#f87171;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; padding:20px 16px 40px;
+    background:var(--background); color:var(--foreground);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:14px; line-height:1.5;
+    -webkit-text-size-adjust:100%;
+  }
+  @media (max-width: 480px) {
+    body { padding: 12px 8px calc(env(safe-area-inset-bottom, 0px) + 28px); }
+  }
+  h1,h2,h3 { line-height:1.3; margin:0; }
+  .card { background:var(--card); color:var(--card-foreground); border:1px solid var(--border); border-radius:12px; }
+  .btn {
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    min-height:32px; padding:4px 14px; border-radius:8px;
+    border:1px solid var(--border); background:var(--card); color:var(--foreground);
+    font:inherit; cursor:pointer; text-decoration:none;
+  }
+  .btn:hover { border-color:var(--muted-foreground); }
+  .btn-primary { background:var(--primary); color:var(--primary-foreground); border-color:transparent; }
+  .btn-primary:hover { opacity:.9; border-color:transparent; }
+  .btn-ghost { background:transparent; border-color:transparent; }
+  .btn-ghost:hover { border-color:var(--border); }
+  .progress { display:flex; height:8px; border-radius:999px; background:var(--muted); overflow:hidden; }
+  .progress-bar { height:100%; background:var(--primary); border-radius:999px; transition:width .15s linear; }
+  .viz-badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px; background:var(--muted); color:var(--foreground); }
+  .viz-row { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+  .text-small { font-size:12px; }
+  .tabular-nums { font-variant-numeric:tabular-nums; }
+  [data-lucide] { display:inline-block; width:16px; height:16px; font-style:normal; line-height:1; overflow:hidden; }
+  [data-lucide="timer"]::before { content:"\23F1\FE0F"; }
+  [data-lucide="alarm-clock"]::before { content:"\23F0\FE0F"; }
+</style>
+<script>
+  window.zcode = (function () {
+    var KEY = 'sq-quiz-state-v1';
+    function load() {
+      try { return JSON.parse(localStorage.getItem(KEY) || 'null'); }
+      catch (e) { return null; }
+    }
+    return {
+      get widgetState() { return load(); },
+      setWidgetState: function (p) {
+        try { localStorage.setItem(KEY, JSON.stringify(p || null)); } catch (e) {}
+        return Promise.resolve(true);
+      }
+    };
+  })();
+</script>
+</head>
+<body>
+<div id="servlet-quiz-app">
+
+  <style>
+    #servlet-quiz-app { max-width: 720px; margin: 0 auto; }
+    #servlet-quiz-app .sq-screen[hidden] { display: none; }
+    #servlet-quiz-app .sq-title { font-weight: 500; margin-bottom: 4px; }
+    #servlet-quiz-app .sq-subtitle { color: var(--muted-foreground); }
+    #servlet-quiz-app .sq-options { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+    #servlet-quiz-app .opt-btn { width: 100%; text-align: left; min-height: 44px; display: flex; align-items: baseline; gap: 10px; white-space: normal; line-height: 1.45; }
+    #servlet-quiz-app .opt-btn .opt-key { flex: none; font-size: 12px; color: var(--muted-foreground); }
+    #servlet-quiz-app .opt-btn.is-correct { border-color: var(--green); box-shadow: inset 0 0 0 1px var(--green); color: var(--foreground); }
+    #servlet-quiz-app .opt-btn.is-wrong { border-color: var(--red); box-shadow: inset 0 0 0 1px var(--red); color: var(--foreground); }
+    #servlet-quiz-app .opt-btn:disabled { cursor: default; opacity: 1; }
+    #servlet-quiz-app .opt-btn:disabled:not(.is-correct):not(.is-wrong) { opacity: .55; }
+    #servlet-quiz-app .sq-timer-num { font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
+    #servlet-quiz-app .sq-timer-num.low { color: var(--red); }
+    #servlet-quiz-app .sq-feedback { margin-top: 12px; border-radius: 8px; padding: 10px 12px; }
+    #servlet-quiz-app .sq-feedback.ok { background: color-mix(in srgb, var(--green) 12%, transparent); }
+    #servlet-quiz-app .sq-feedback.bad { background: color-mix(in srgb, var(--red) 10%, transparent); }
+    #servlet-quiz-app .sq-wrong-item { padding: 10px 0; border-top: 1px solid var(--border); }
+    #servlet-quiz-app .sq-wrong-item:first-of-type { border-top: none; }
+    #servlet-quiz-app .sq-score-big { font-size: 32px; font-weight: 500; font-variant-numeric: tabular-nums; }
+    /* ===== 触屏与窄屏适配 ===== */
+    #servlet-quiz-app .btn { -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }
+    #servlet-quiz-app .sq-cardpad { --sq-pad-x: 20px; --sq-pad-y: 20px; padding: var(--sq-pad-y) var(--sq-pad-x); }
+    #servlet-quiz-app .sq-sticky {
+      position: sticky; top: 0; z-index: 5;
+      margin: calc(-1 * var(--sq-pad-y)) calc(-1 * var(--sq-pad-x)) 12px;
+      padding: calc(var(--sq-pad-y) / 2) var(--sq-pad-x) 8px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+    }
+    @media (pointer: coarse) {
+      #servlet-quiz-app .btn { min-height: 44px; }
+      #servlet-quiz-app .opt-btn { min-height: 48px; }
+      #servlet-quiz-app .sq-kbd-hint { display: none; }
+    }
+    @media (max-width: 480px) {
+      #servlet-quiz-app .sq-cardpad { --sq-pad-x: 14px; --sq-pad-y: 16px; }
+      #servlet-quiz-app #sq-question { font-size: 16px; }
+      #servlet-quiz-app .sq-result-actions .btn { flex: 1 1 100%; }
+    }
+    #servlet-quiz-app .sq-start-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+    #servlet-quiz-app .sq-start-btns .btn { width: 100%; justify-content: space-between; }
+    @media (prefers-reduced-motion: reduce) {
+      #servlet-quiz-app * { transition: none !important; animation: none !important; }
+    }
+  </style>
+
+  <!-- 开始页 -->
+  <div class="sq-screen card sq-cardpad" id="sq-start">
+    <div class="sq-title"><h2 style="margin:0;">Servlet 第3章 · 考场模拟</h2></div>
+    <div class="sq-subtitle">核心 33 题（对准考题题号）+ 28 道变式题（覆盖每个考点的其余子知识点）· 全部乱序</div>
+    <div class="viz-row" style="margin-top:10px;">
+      <span class="viz-badge">学习通规则：33 题 · 8 分钟总计时 · 到时强制收卷</span>
+    </div>
+    <div class="sq-start-btns">
+      <button type="button" class="btn btn-primary" id="sq-btn-exam">全真模拟 · 33 题 / 8 分钟（到时强制收卷）</button>
+      <button type="button" class="btn" id="sq-btn-quick">单题计时 · 快刷 15 题 × 15 秒</button>
+      <button type="button" class="btn" id="sq-btn-practice">练习模式 · 核心 33 题 · 不限时，答后即看解析</button>
+      <button type="button" class="btn" id="sq-btn-variant">变式专练 · 61 题全覆盖 · 不限时，答后即看解析</button>
+      <button type="button" class="btn" id="sq-btn-wrong" hidden></button>
+    </div>
+    <div class="text-small sq-subtitle sq-kbd-hint" style="margin-top:12px;">快捷键：数字 1–4 选答案，回车 / 空格 立即进下一题 · 全真模式答完自动跳题，最后 1 分钟倒计时变红</div>
+  </div>
+
+  <!-- 答题页 -->
+  <div class="sq-screen card sq-cardpad" id="sq-quiz" hidden>
+    <div class="sq-sticky">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+      <div class="text-small sq-subtitle"><span id="sq-progress" class="tabular-nums">第 1/33 题</span></div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span class="viz-badge" id="sq-tag">知识点</span>
+        <span class="text-small sq-subtitle">答对 <span id="sq-live-score" class="tabular-nums">0</span></span>
+      </div>
+    </div>
+
+    <div id="sq-timer-wrap" style="display:flex; align-items:center; gap:10px; margin-top:12px;">
+      <i data-lucide="timer" aria-hidden="true"></i>
+      <div class="progress" style="flex:1;" role="progressbar" aria-label="剩余时间" aria-valuemin="0" aria-valuemax="15" aria-valuenow="15" id="sq-timer-role">
+        <div class="progress-bar" id="sq-timer-bar" style="width:100%;"></div>
+      </div>
+      <span class="sq-timer-num tabular-nums" id="sq-timer-num">15</span>
+    </div>
+
+    <div id="sq-total-wrap" style="display:none; align-items:center; gap:10px; margin-top:12px;">
+      <i data-lucide="alarm-clock" aria-hidden="true"></i>
+      <div class="progress" style="flex:1;" role="progressbar" aria-label="总剩余时间" aria-valuemin="0" aria-valuemax="480" aria-valuenow="480" id="sq-total-role">
+        <div class="progress-bar" id="sq-total-bar" style="width:100%;"></div>
+      </div>
+      <span class="sq-timer-num tabular-nums" id="sq-total-num">8:00</span>
+    </div>
+    </div>
+
+    <div id="sq-question" aria-live="polite" style="margin-top:16px; font-weight:500;"></div>
+    <div class="sq-options" id="sq-options" role="group" aria-label="选项"></div>
+    <div id="sq-feedback-wrap" aria-live="polite"></div>
+    <div style="margin-top:12px; display:flex; justify-content:flex-end;">
+      <button type="button" class="btn btn-primary" id="sq-btn-next" hidden>下一题（回车）</button>
+    </div>
+  </div>
+
+  <!-- 结果页 -->
+  <div class="sq-screen" id="sq-result" hidden>
+    <div class="card sq-cardpad">
+      <h2 style="margin:0 0 6px;">本场成绩</h2>
+      <div class="sq-score-big"><span id="sq-score">0</span> / <span id="sq-total">33</span></div>
+      <div class="sq-subtitle" id="sq-result-meta" style="margin-top:2px;"></div>
+      <div class="viz-row sq-result-actions" style="margin-top:14px; gap:8px;">
+        <button type="button" class="btn btn-primary" id="sq-btn-again">再刷一遍（乱序）</button>
+        <button type="button" class="btn" id="sq-btn-wrong2" hidden>只刷错题</button>
+        <button type="button" class="btn btn-ghost" id="sq-btn-home">返回首页</button>
+      </div>
+    </div>
+    <div class="card sq-cardpad" id="sq-wrong-card" style="margin-top:12px;" hidden>
+      <h3 style="margin:0 0 4px;">错题本（<span id="sq-wrong-count">0</span> 题）</h3>
+      <div class="text-small sq-subtitle" style="margin-bottom:8px;">睡前把这里过一遍，明天考前再看一眼。</div>
+      <div id="sq-wrong-list"></div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    var root = document.getElementById('servlet-quiz-app');
+    if (!root) return;
+
+    var LIMIT = 15; // 考场模式每题秒数
+
+    // ===== 题库：来自老师《第3章小测-考前精准复习资料》33 个考点 =====
+    var BANK = [
+      { id: 1, tag: 'Servlet本质', q: 'Servlet 是什么？',
+        opts: ['基于 Java 语言、运行在服务器端的“小程序”，本质是一个特殊的 Java 类', '嵌在 HTML 里、由浏览器解释执行的客户端脚本', '浏览器下载后本地运行的 Applet 小程序', '专门负责数据库连接与事务管理的中间件'],
+        ans: 0, tip: 'Servlet = 服务器端 Java 小程序，核心功能是生成动态 Web 内容。' },
+      { id: 2, tag: '运行两要素', q: 'Servlet 正常运行需要的两个要素是？',
+        opts: ['JRE（Java 运行环境）+ Servlet 容器（如 Tomcat）', 'JDK 编译器 + 浏览器', 'main() 方法 + JVM', 'Web 服务器 + 数据库'],
+        ans: 0, tip: 'Servlet 没有 main 方法，由容器创建和调用，不能独立运行。' },
+      { id: 3, tag: '容器职责', q: '下列哪一项【不是】Servlet 容器的职责？',
+        opts: ['编译 Servlet 源代码', '把 HTTP 请求封装为 HttpServletRequest 对象', '根据 URL 和配置文件定位目标 Servlet', '管理 Servlet 生命周期（init / service / destroy）'],
+        ans: 0, tip: '编译是开发阶段的事，容器不负责编译源代码。' },
+      { id: 4, tag: '生命周期', q: 'init() 方法的调用时机是？',
+        opts: ['只在 Servlet 第一次被创建时调用一次', '每次请求都会调用', '每次写响应时调用', '服务器关闭时调用'],
+        ans: 0, tip: '构造方法 → init()（1 次）→ service()（每次请求）→ destroy()（1 次）。' },
+      { id: 5, tag: 'service分发', q: 'service() 方法的核心作用是？',
+        opts: ['根据请求方式（GET/POST 等）自动分发到 doGet()、doPost()', '编译并加载 Servlet 类', '直接生成响应返回，不再往下走', '为每个应用创建 ServletContext'],
+        ans: 0, tip: '开发者通常不重写 service()，而是重写 doGet()/doPost()。' },
+      { id: 6, tag: 'doGet', q: '处理 GET 请求应该重写哪个方法？',
+        opts: ['doGet()', 'doPost()', 'service()', 'destroy()'],
+        ans: 0, tip: 'GET → doGet()；业务逻辑：从 request 取参数，向 response 写结果。' },
+      { id: 7, tag: 'url-pattern', q: 'web.xml 中 <url-pattern> 的作用是？',
+        opts: ['定义 Servlet 的访问路径（URL 映射），如 /now', '建立“Servlet 名—Java 类”的绑定', '配置 Servlet 的初始化参数', '声明 Servlet 的加载顺序'],
+        ans: 0, tip: '<servlet> 绑类，<servlet-mapping> 绑路径，两者靠 Servlet 名关联。' },
+      { id: 8, tag: '注解配置', q: '@WebServlet 注解的正确写法是？',
+        opts: ['@WebServlet(urlPatterns = "/now")', '@WebServlet(urlPatterns = "/now");', '@urlPatterns("/now")', '@WebServlet(path: "/now")'],
+        ans: 0, tip: '注解后面不加分号；注解配置可以替代 web.xml 配置。' },
+      { id: 9, tag: 'destroy时机', q: 'destroy() 方法在什么时候被调用？',
+        opts: ['服务器停止或 Web 应用被卸载时，只调用一次', '每次请求结束时调用', '长时间没有用户访问时调用', '每次 service() 执行完调用'],
+        ans: 0, tip: 'destroy() 用于释放资源，只在关闭/卸载时调一次。' },
+      { id: 10, tag: 'ServletConfig', q: 'ServletConfig 封装的是什么信息？',
+        opts: ['单个 Servlet 自身的配置信息', '整个 Web 应用的全局配置信息', '浏览器发来的请求参数', '当前登录用户的会话数据'],
+        ans: 0, tip: 'Config 属于单个 Servlet；Context 属于整个应用。取参数：config.getInitParameter("参数名")。' },
+      { id: 11, tag: '获取Context', q: '获取 ServletContext 对象的常用方式是？',
+        opts: ['this.getServletContext()', 'new ServletContext()', 'System.getServletContext()', 'response.getServletContext()'],
+        ans: 0, tip: '也可 request.getServletContext()；它由容器创建管理，不能 new。' },
+      { id: 12, tag: 'Context作用域', q: '关于 ServletContext，下列说法正确的是？',
+        opts: ['服务器启动时为每个 Web 应用创建，被应用中所有 Servlet 共享', '每个 Servlet 都有自己的一个 Context', '每次请求都新创建一个 Context', '每个浏览器会话对应一个 Context'],
+        ans: 0, tip: '作用域从大到小：ServletContext（应用）> Session（会话）> request（请求）。' },
+      { id: 13, tag: 'context-param', q: 'web.xml 中 <context-param> 配置的是什么？',
+        opts: ['整个 Web 应用的全局参数（如应用名、邮箱）', '单个 Servlet 的初始化参数', '浏览器的请求参数', '服务器的端口参数'],
+        ans: 0, tip: '<init-param> 写在 <servlet> 内部，属于单个 Servlet；<context-param> 属于全应用。' },
+      { id: 14, tag: 'getParameter', q: 'getParameter("name") 获取的是？',
+        opts: ['浏览器发来的请求参数（URL ? 后面或表单提交的）', '服务器内部 setAttribute() 存入的域数据', '请求头里的信息', 'web.xml 配置的初始化参数'],
+        ans: 0, tip: '一句话：parameter 是“浏览器给的”，attribute 是“代码存的”。' },
+      { id: 15, tag: '同名多值', q: '获取复选框（checkbox）同名多值参数，应该用？',
+        opts: ['getParameterValues()，返回 String 数组', 'getParameter()', 'getAttribute()', 'getHeader()'],
+        ans: 0, tip: '典型场景：复选框多选 → getParameterValues；单值用 getParameter。' },
+      { id: 16, tag: '请求行方法', q: '获取请求方式（GET/POST）应调用？',
+        opts: ['getMethod()', 'getRequestURI()', 'getProtocol()', 'getContextPath()'],
+        ans: 0, tip: 'getMethod=请求方式；getRequestURI=资源名；getProtocol=协议版本；getContextPath=应用路径。' },
+      { id: 17, tag: '中文乱码', q: '解决响应中文乱码的正确做法是？',
+        opts: ['response.setContentType("text/html;charset=UTF-8")，且必须写在 getWriter() 之前', '先 getWriter() 输出，再 setContentType 补设编码', 'request.setContentType("UTF-8")', 'response.setEncoding("GBK")'],
+        ans: 0, tip: '一行代码两件事：设 Writer 编码 + 告诉浏览器类型编码；必须在 getWriter() 之前！' },
+      { id: 18, tag: '转发位置', q: '请求转发发生在哪里？',
+        opts: ['服务器内部，浏览器地址栏不变、无感知', '浏览器端，由浏览器重新发起请求', '数据库服务器上', 'DNS 解析环节'],
+        ans: 0, tip: '转发是服务器行为，只有一次 HTTP 请求-响应。' },
+      { id: 19, tag: '转发共享', q: '转发时，参与转发的多个 Servlet 之间？',
+        opts: ['共享同一个 request 对象和 response 对象', '各自持有不同的 request 对象', '只共享 response，不共享 request', '不共享任何对象'],
+        ans: 0, tip: 'A 用 setAttribute 存、B 用 getAttribute 取，靠的就是同一个 request；转发不能跳到应用外。' },
+      { id: 20, tag: '转发代码', q: '请求转发代码的正确三步是？',
+        opts: ['setAttribute → getRequestDispatcher → forward', 'forward → setAttribute → getRequestDispatcher', 'getRequestDispatcher → sendRedirect → setAttribute', 'setAttribute → sendRedirect → forward'],
+        ans: 0, tip: '存数据 → 拿转发器 → dispatcher.forward(request, response)。' },
+      { id: 21, tag: '重定向本质', q: '请求重定向的本质是？',
+        opts: ['客户端行为：服务器返回新 URL，浏览器重新发请求，共 2 次请求', '服务器内部行为，一共只有 1 次请求', '客户端行为，但只有 1 次请求', '服务器行为，浏览器完全无感知'],
+        ans: 0, tip: '重定向 = 客户端行为、2 次 HTTP 请求、2 组 request/response。' },
+      { id: 22, tag: 'sendRedirect', q: '重定向的正确代码写法是？',
+        opts: ['response.sendRedirect("url")', 'request.sendRedirect("url")', 'response.forward("url")', 'request.dispatch("url")'],
+        ans: 0, tip: 'sendRedirect 是 response 的方法，request 没有这个方法。' },
+      { id: 23, tag: '重定向局限', q: '重定向后，第二次请求取不到第一次 request 里存的数据，原因是？',
+        opts: ['两次请求对应两个不同的 request 对象', '数据存放超过有效期被自动删除', '服务器在两次请求之间重启了', '两次请求编码方式不一致'],
+        ans: 0, tip: '域不共享；但重定向可以跳外部网站（如百度），地址栏会变。' },
+      { id: 24, tag: '转发vs重定向', q: '下列哪一项【不是】转发与重定向的区别？',
+        opts: ['是否同步执行', '请求次数（1 次还是 2 次）', '浏览器地址栏是否改变', 'request 域数据是否共享'],
+        ans: 0, tip: '区别：行为主体 / 请求次数 / 地址栏 / request 域 / 跳转范围 / 代码——“同步异步”不是！' },
+      { id: 25, tag: 'response方法', q: 'setContentType() 方法的作用是？',
+        opts: ['设置响应体的 MIME 类型与字符编码', '设置响应状态码', '发送错误状态码页面', '获取字符输出流'],
+        ans: 0, tip: 'setStatus=状态码；sendError=错误页；getWriter=输出流。' },
+      { id: 26, tag: '取值方法', q: 'getHeader() 获取的是？',
+        opts: ['请求头信息', '浏览器提交的请求参数', '转发共享的域数据', 'web.xml 里的初始化参数'],
+        ans: 0, tip: 'parameter=请求参数 / attribute=域数据 / header=请求头 / initParameter=初始化参数。' },
+      { id: 27, tag: 'URI', q: 'getRequestURI() 返回的内容是？',
+        opts: ['主机和端口之后、“?”之前的部分，如 /appName/demo3', '包含协议、主机、端口的完整 URL', '“?”之后的查询字符串，如 name=Jack', 'Servlet 映射路径 /demo3'],
+        ans: 0, tip: 'URI 不含协议、主机名、端口号，也不含查询字符串。' },
+      { id: 28, tag: 'ContextPath', q: 'getContextPath() 返回的是？',
+        opts: ['请求资源所在的 Web 应用路径，如 /appName', 'Servlet 映射路径，如 /demo3', '完整的请求 URL', '服务器根路径 /'],
+        ans: 0, tip: 'ContextPath=应用路径（/appName）；ServletPath=映射路径（/demo3）。' },
+      { id: 29, tag: 'doPost', q: '表单 <form method="post"> 提交的数据由哪个方法处理？',
+        opts: ['doPost()', 'doGet()', 'service() 直接忽略', 'destroy()'],
+        ans: 0, tip: '地址栏传参/超链接=GET→doGet；表单 method="post"=POST→doPost。' },
+      { id: 30, tag: '继承链', q: 'HttpServlet 的直接父类是？',
+        opts: ['GenericServlet', 'Servlet 接口', 'HttpSession', 'Object'],
+        ans: 0, tip: 'Servlet 接口 → GenericServlet（与协议无关）→ HttpServlet（针对 HTTP 增强）。' },
+      { id: 31, tag: 'Context唯一', q: 'ServletContext 的创建时机与数量是？',
+        opts: ['服务器启动时创建，每个 Web 应用一个，全应用唯一', '每个 Servlet 被访问时各创建一个', '每次请求创建一个', '每个用户会话创建一个'],
+        ans: 0, tip: 'Context 域对象：全应用唯一、所有 Servlet 共享；重启后销毁。' },
+      { id: 32, tag: '时机原因', q: 'setContentType() 必须写在 getWriter() 之前，原因是？',
+        opts: ['getWriter() 获取输出流时编码方式已经确定，之后再设置对已获取的 Writer 无效', '浏览器必须最先收到类型声明才能解析', 'getWriter() 会清空之前的所有设置', '只是编码规范要求，没有技术原因'],
+        ans: 0, tip: 'Writer 一旦拿到，编码就定型了；后设置 → 中文乱码。' },
+      { id: 33, tag: '访问计数', q: '统计“全站所有用户”的总访问次数，计数器应存在哪个域？',
+        opts: ['ServletContext', 'request', 'HttpSession', 'doGet 的局部变量'],
+        ans: 0, tip: '全体共享→Context；单个用户→Session；单次请求→request。重启服务器计数清零。' }
+    ];
+
+    // ===== 变式题：核心题没押中的其余子知识点，这里全部出成题（id 中数字 = 对应核心题号） =====
+    var VARIANTS = [
+      { id: '1v1', tag: 'Servlet本质', q: 'Servlet 的核心功能是？',
+        opts: ['生成动态 Web 内容', '编译 Java 源代码', '在浏览器端执行脚本', '管理数据库事务'],
+        ans: 0, tip: '服务器端 Java 小程序，专门生成动态 Web 内容。' },
+      { id: '2v1', tag: '运行两要素', q: '关于 Servlet 的运行方式，说法正确的是？',
+        opts: ['没有 main 方法，由容器创建和调用，不能独立运行', '自带 main 方法，可直接用 java 命令运行', '在浏览器中运行，无需服务器', '必须连接数据库才能运行'],
+        ans: 0, tip: 'Servlet 无 main；由 Tomcat 等容器驱动整个生命周期。' },
+      { id: '3v1', tag: '容器职责', q: '容器会把 HTTP 请求封装成什么对象传给 Servlet？',
+        opts: ['HttpServletRequest', 'HttpSession', 'ServletContext', 'RequestDispatcher'],
+        ans: 0, tip: '容器同时创建 HttpServletResponse，并按 URL 定位 Servlet、管理生命周期。' },
+      { id: '4v1', tag: '生命周期', q: '每次请求到来都会被调用的方法是？',
+        opts: ['service()', 'init()', '构造方法', 'destroy()'],
+        ans: 0, tip: 'init/destroy 各一次；service() 每次请求都调用。' },
+      { id: '4v2', tag: '生命周期', q: 'Servlet 生命周期的完整顺序是？',
+        opts: ['构造方法 → init() → service() → destroy()', 'init() → 构造方法 → service() → destroy()', '构造方法 → service() → init() → destroy()', 'init() → service() → 构造方法 → destroy()'],
+        ans: 0, tip: '先构造、再初始化，服役期间反复 service，卸载前 destroy。' },
+      { id: '7v1', tag: 'url-pattern', q: 'web.xml 中 <servlet> 标签的作用是？',
+        opts: ['注册 Servlet，建立“Servlet 名—代码类”的绑定', '定义 URL 访问路径', '配置全应用的全局参数', '配置应用的欢迎页面'],
+        ans: 0, tip: '<servlet> 绑类；<servlet-mapping> 里的 <url-pattern> 绑路径。' },
+      { id: '8v1', tag: '注解配置', q: '关于 @WebServlet 注解，说法正确的是？',
+        opts: ['注解配置可以替代 web.xml 配置', '注解必须与 web.xml 同时使用才生效', '注解只能配置类名，不能配置路径', '注解需要写在方法内部'],
+        ans: 0, tip: '注解后不加分号；可完全替代 web.xml 的注册与映射。' },
+      { id: '10v1', tag: 'ServletConfig', q: '获取 web.xml 中 <init-param> 配置的初始化参数，应调用？',
+        opts: ['config.getInitParameter("参数名")', 'config.getAttribute("参数名")', 'config.getParameter("参数名")', 'config.getHeader("参数名")'],
+        ans: 0, tip: 'ServletConfig 在 init(ServletConfig config) 时由服务器传入。' },
+      { id: '11v1', tag: '获取Context', q: '下列也能获取 ServletContext 对象的方式是？',
+        opts: ['request.getServletContext()', 'new ServletContext()', 'response.getWriter()', 'System.getServletContext()'],
+        ans: 0, tip: '三种常用：this.getServletContext() / getServletContext() / request.getServletContext()。' },
+      { id: '12v1', tag: 'Context作用域', q: '三个作用域对象按范围从大到小排列是？',
+        opts: ['ServletContext > HttpSession > request', 'HttpSession > ServletContext > request', 'request > HttpSession > ServletContext', 'ServletContext > request > HttpSession'],
+        ans: 0, tip: '应用 > 会话 > 请求。' },
+      { id: '13v1', tag: 'context-param', q: '<init-param> 应该写在哪里、属于谁？',
+        opts: ['写在 <servlet> 标签内部，属于单个 Servlet', '写在 <context-param> 里，属于全应用', '写在 <servlet-mapping> 里，属于 URL', '写在 class 文件里，属于浏览器'],
+        ans: 0, tip: 'init-param 属于单个 Servlet；context-param 才属于全应用。' },
+      { id: '14v1', tag: 'getParameter', q: 'getAttribute() 获取的是？',
+        opts: ['服务器内部 setAttribute() 存入的域数据', '浏览器提交的请求参数', '请求头信息', 'URL 中的查询字符串'],
+        ans: 0, tip: 'parameter = 浏览器给的；attribute = 代码存的（转发共享用）。' },
+      { id: '16v1', tag: '请求行方法', q: '获取协议及版本号（如 HTTP/1.1）的方法是？',
+        opts: ['getProtocol()', 'getMethod()', 'getURI()', 'getServerName()'],
+        ans: 0, tip: 'getMethod=请求方式；getProtocol=协议版本。' },
+      { id: '16v2', tag: '请求行方法', q: '返回 Servlet 映射路径（如 /demo3）的方法是？',
+        opts: ['getServletPath()', 'getContextPath()', 'getRequestURI()', 'getMethod()'],
+        ans: 0, tip: 'ServletPath=映射路径（/demo3）；ContextPath=应用路径（/appName）。' },
+      { id: '19v1', tag: '转发共享', q: '关于请求转发，说法错误的是？',
+        opts: ['转发可以跳转到本应用之外的 URL（如百度）', '转发过程中共享同一个 request 对象', '转发后浏览器地址栏不变', '转发的目标可以是本应用内的另一个 Servlet'],
+        ans: 0, tip: '转发只能在本应用内；跳外部网站要用重定向。' },
+      { id: '20v1', tag: '转发代码', q: '获取转发器（RequestDispatcher）应调用？',
+        opts: ['request.getRequestDispatcher("/resp")', 'response.getRequestDispatcher("/resp")', 'request.sendDispatcher("/resp")', 'context.getDispatcher("/resp")'],
+        ans: 0, tip: '用 request 拿转发器，再 dispatcher.forward(request, response)。' },
+      { id: '23v1', tag: '重定向局限', q: '与转发相比，重定向的优势是？',
+        opts: ['可以跳转到任意外部 URL（如百度）', '共享同一个 request 域', '只有一次请求，速度更快', '浏览器地址栏保持不变'],
+        ans: 0, tip: '重定向可跳外站、地址栏变；代价是 2 次请求、域不共享。' },
+      { id: '24v1', tag: '转发vs重定向', q: '请求转发之后，浏览器地址栏会？',
+        opts: ['保持不变', '变成目标资源的 URL', '变为应用根路径', '被清空'],
+        ans: 0, tip: '转发 1 次请求、浏览器无感知、地址栏不变；重定向才变。' },
+      { id: '24v2', tag: '转发vs重定向', q: '从跳转范围看，正确的是？',
+        opts: ['转发仅限本应用内，重定向可到任意 URL', '转发可到任意 URL，重定向仅限本应用', '两者都只能在本应用内跳转', '两者都能跳转到任意 URL'],
+        ans: 0, tip: '范围：转发=应用内；重定向=任意 URL（含外站）。' },
+      { id: '25v1', tag: 'response方法', q: '设置响应状态码的方法是？',
+        opts: ['setStatus(int sc)', 'setStatusText(String s)', 'sendRedirect(int sc)', 'setHeader(int sc)'],
+        ans: 0, tip: 'setStatus=状态码；sendError=错误页；getWriter=输出流。' },
+      { id: '25v2', tag: 'response方法', q: '发送错误状态码并显示错误页面的方法是？',
+        opts: ['sendError(int sc)', 'setStatus(int sc)', 'sendRedirect(int sc)', 'getError(int sc)'],
+        ans: 0, tip: 'sendError(404) 会向客户端发送错误状态码页面。' },
+      { id: '26v1', tag: '取值方法', q: '获取 web.xml/注解中配置的 Servlet 初始化参数用？',
+        opts: ['getInitParameter()', 'getHeader()', 'getParameter()', 'getAttribute()'],
+        ans: 0, tip: 'initParameter=初始化参数；parameter=请求参数；attribute=域数据。' },
+      { id: '27v1', tag: 'URI', q: '请求 http://localhost:8080/appName/demo3?name=Jack 的 getRequestURI() 返回？',
+        opts: ['/appName/demo3', 'http://localhost:8080/appName/demo3', 'name=Jack', '/demo3'],
+        ans: 0, tip: 'URI = 主机端口之后、? 之前；不含协议/主机/端口/查询串。' },
+      { id: '28v1', tag: 'ContextPath', q: '请求 http://localhost:8080/appName/demo3?name=Jack 的 getServletPath() 返回？',
+        opts: ['/demo3', '/appName', '/appName/demo3', 'name=Jack'],
+        ans: 0, tip: 'ServletPath=映射路径（/demo3）；ContextPath=应用路径（/appName）。' },
+      { id: '30v1', tag: '继承链', q: '与协议无关、service() 仍是抽象方法的类是？',
+        opts: ['GenericServlet', 'HttpServlet', 'ServletConfig', 'ServletContext'],
+        ans: 0, tip: 'GenericServlet 与协议无关；HttpServlet 针对协议增强。' },
+      { id: '30v2', tag: '继承链', q: '关于 Servlet 接口，说法正确的是？',
+        opts: ['定义了 5 个抽象方法，其中 init/service/destroy 与生命周期相关', '只定义了 service() 一个方法', '可以直接 new 出来使用', 'HttpServlet 直接实现 Servlet 接口，没有中间层'],
+        ans: 0, tip: 'Servlet 接口 → GenericServlet → HttpServlet，逐层实现/继承。' },
+      { id: '33v1', tag: '访问计数', q: '重启服务器后，存在 ServletContext 里的访问计数会？',
+        opts: ['清零（Context 随应用销毁重建）', '继续累加保持', '自动写入数据库', '变为 -1'],
+        ans: 0, tip: 'ServletContext 随应用创建/销毁，重启即清零。' },
+      { id: '33v2', tag: '访问计数', q: '统计“单个用户”多次请求之间的数据（如购物车），应存在？',
+        opts: ['HttpSession', 'ServletContext', 'request', 'pageContext'],
+        ans: 0, tip: '口诀：全体共享用 Context，单个用户用 Session，单次请求用 request。' }
+    ];
+    var ALLQ = {};
+    BANK.forEach(function (b) { ALLQ[b.id] = b; });
+    VARIANTS.forEach(function (v) { ALLQ[v.id] = v; });
+
+    // ===== 状态 =====
+    var run = null; // {queue, idx, mode, correct, wrongIds, wrongDetail, answeredMs, cur:{q, order, qStart, answered, timerId, lockAdvance}}
+
+    var $ = function (id) { return document.getElementById(id); };
+    var screens = { start: $('sq-start'), quiz: $('sq-quiz'), result: $('sq-result') };
+    function show(name) {
+      Object.keys(screens).forEach(function (k) { screens[k].hidden = (k !== name); });
+    }
+    function shuffle(arr) {
+      var a = arr.slice();
+      for (var i = a.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = a[i]; a[i] = a[j]; a[j] = t;
+      }
+      return a;
+    }
+    function esc(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // ===== 持久化错题本（会话内恢复） =====
+    function loadSaved() {
+      try {
+        var st = window.zcode && window.zcode.widgetState;
+        if (st && st.privateContent && Array.isArray(st.privateContent.wrongIds)) {
+          return st.privateContent.wrongIds.filter(function (id) {
+            return Object.prototype.hasOwnProperty.call(ALLQ, id);
+          });
+        }
+      } catch (e) {}
+      return [];
+    }
+    function saveState() {
+      try {
+        if (window.zcode && window.zcode.setWidgetState) {
+          var ids = (run && run.wrongAllTime) ? run.wrongAllTime : loadSaved();
+          window.zcode.setWidgetState({ privateContent: { wrongIds: ids } }).catch(function () {});
+        }
+      } catch (e) {}
+    }
+    document.addEventListener('zcode:set_globals', function (ev) {
+      if (ev.detail && ev.detail.globals && ev.detail.globals.widgetState) {
+        renderStartButtons();
+      }
+    });
+
+    // ===== 开始页 =====
+    function renderStartButtons() {
+      var saved = loadSaved();
+      var btn = $('sq-btn-wrong');
+      if (saved.length > 0) {
+        btn.hidden = false;
+        btn.textContent = '只刷错题（' + saved.length + ' 题）';
+      } else {
+        btn.hidden = true;
+      }
+    }
+    var TOTAL_MS = 8 * 60 * 1000; // 学习通：33 题共 8 分钟，到时强制收卷
+    function startRun(mode, list) {
+      run = {
+        mode: mode, // 'full' 全真总计时 | 'exam' 单题计时 | 'practice' 练习
+        base: list,
+        queue: shuffle(list),
+        idx: 0,
+        correct: 0,
+        wrongIds: [],
+        wrongDetail: [],
+        answeredMs: 0,
+        answeredCount: 0,
+        startAt: Date.now(),
+        totalTimerId: null,
+        done: false
+      };
+      show('quiz');
+      renderQuestion();
+      if (mode === 'full') startTotalTimer();
+    }
+    $('sq-btn-exam').addEventListener('click', function () { startRun('full', BANK); });
+    $('sq-btn-quick').addEventListener('click', function () { startRun('exam', shuffle(BANK).slice(0, 15)); });
+    $('sq-btn-practice').addEventListener('click', function () { startRun('practice', BANK); });
+    $('sq-btn-variant').addEventListener('click', function () { startRun('practice', BANK.concat(VARIANTS)); });
+    $('sq-btn-wrong').addEventListener('click', function () {
+      var list = loadSaved().map(function (id) { return ALLQ[id]; }).filter(Boolean);
+      if (list.length) startRun('exam', list);
+    });
+
+    // ===== 答题 =====
+    function renderQuestion() {
+      var item = run.queue[run.idx];
+      var order = shuffle([0, 1, 2, 3]);
+      run.cur = { q: item, order: order, qStart: Date.now(), answered: false, timerId: null, advanceId: null };
+
+      $('sq-progress').textContent = '第 ' + (run.idx + 1) + '/' + run.queue.length + ' 题';
+      $('sq-tag').textContent = item.tag;
+      $('sq-live-score').textContent = String(run.correct);
+      $('sq-question').textContent = item.q;
+
+      var box = $('sq-options');
+      box.innerHTML = '';
+      order.forEach(function (origIdx, dispIdx) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'btn opt-btn';
+        b.innerHTML = '<span class="opt-key">' + (dispIdx + 1) + '</span><span>' + esc(item.opts[origIdx]) + '</span>';
+        b.addEventListener('click', function () { answer(dispIdx); });
+        box.appendChild(b);
+      });
+
+      $('sq-feedback-wrap').innerHTML = '';
+      $('sq-btn-next').hidden = true;
+
+      var perQ = (run.mode === 'exam');
+      $('sq-timer-wrap').style.display = perQ ? 'flex' : 'none';
+      $('sq-total-wrap').style.display = (run.mode === 'full') ? 'flex' : 'none';
+      if (perQ) startTimer();
+    }
+
+    function startTimer() {
+      var role = $('sq-timer-role'), bar = $('sq-timer-bar'), num = $('sq-timer-num');
+      var end = Date.now() + LIMIT * 1000;
+      function tick() {
+        if (!run.cur || run.cur.answered) return;
+        var left = (end - Date.now()) / 1000;
+        if (left <= 0) { num.textContent = '0'; num.classList.add('low'); bar.style.width = '0%'; onTimeout(); return; }
+        num.textContent = String(Math.ceil(left));
+        num.classList.toggle('low', left <= 5);
+        bar.style.width = (left / LIMIT * 100) + '%';
+        role.setAttribute('aria-valuenow', String(Math.ceil(left)));
+        run.cur.timerId = setTimeout(tick, 100);
+      }
+      tick();
+    }
+
+    function lockOptions(pickedIdx) {
+      var btns = $('sq-options').querySelectorAll('.opt-btn');
+      var cur = run.cur;
+      btns.forEach(function (b, i) {
+        b.disabled = true;
+        if (cur.order[i] === cur.q.ans) b.classList.add('is-correct');
+      });
+      if (typeof pickedIdx === 'number' && cur.order[pickedIdx] !== cur.q.ans) {
+        btns[pickedIdx].classList.add('is-wrong');
+      }
+    }
+
+    function answer(dispIdx) {
+      var cur = run.cur;
+      if (!cur || cur.answered) return;
+      cur.answered = true;
+      if (cur.timerId) { clearTimeout(cur.timerId); cur.timerId = null; }
+      var right = (cur.order[dispIdx] === cur.q.ans);
+      var ms = Date.now() - cur.qStart;
+      run.answeredMs += ms;
+      run.answeredCount++;
+      lockOptions(dispIdx);
+
+      if (right) {
+        run.correct++;
+        $('sq-live-score').textContent = String(run.correct);
+      } else {
+        recordWrong(cur.q, cur.q.opts[cur.order[dispIdx]]);
+      }
+      showFeedback(right, null);
+
+      if (run.mode === 'full') {
+        cur.advanceId = setTimeout(next, 700);
+      } else if (run.mode === 'exam') {
+        cur.advanceId = setTimeout(next, 1500);
+      } else {
+        $('sq-btn-next').hidden = false;
+        $('sq-btn-next').focus();
+      }
+    }
+
+    function onTimeout() {
+      var cur = run.cur;
+      if (!cur || cur.answered) return;
+      cur.answered = true;
+      run.answeredMs += Date.now() - cur.qStart;
+      run.answeredCount++;
+      lockOptions(null);
+      recordWrong(cur.q, null);
+      showFeedback(false, '超时未答');
+      cur.advanceId = setTimeout(next, 1500);
+    }
+
+    function recordWrong(q, picked) {
+      run.wrongIds.push(q.id);
+      run.wrongDetail.push({ id: q.id, tag: q.tag, q: q.q, picked: picked, ansText: q.opts[q.ans], tip: q.tip });
+    }
+
+    function showFeedback(right, prefix) {
+      var head = prefix ? prefix + ' · ' : '';
+      var html;
+      if (right) {
+        html = '<div class="sq-feedback ok"><strong>答对了</strong><div class="text-small" style="margin-top:2px;">' + esc(run.cur.q.tip) + '</div></div>';
+      } else {
+        html = '<div class="sq-feedback bad"><strong>' + head + '正确答案：' + esc(run.cur.q.opts[run.cur.q.ans]) + '</strong><div class="text-small" style="margin-top:2px;">' + esc(run.cur.q.tip) + '</div></div>';
+      }
+      $('sq-feedback-wrap').innerHTML = html;
+    }
+
+    function next() {
+      if (!run) return;
+      var cur = run.cur;
+      if (cur && cur.advanceId) { clearTimeout(cur.advanceId); cur.advanceId = null; }
+      if (run.idx + 1 >= run.queue.length) { finish(); return; }
+      run.idx++;
+      renderQuestion();
+    }
+    $('sq-btn-next').addEventListener('click', next);
+
+    // ===== 全真模式：8 分钟总计时，到时强制收卷 =====
+    function fmtClock(ms) {
+      var s = Math.max(0, Math.ceil(ms / 1000));
+      var m = Math.floor(s / 60), r = s % 60;
+      return m + ':' + (r < 10 ? '0' : '') + r;
+    }
+    function startTotalTimer() {
+      var end = Date.now() + TOTAL_MS;
+      function tick() {
+        if (!run || run.done) return;
+        var leftMs = end - Date.now();
+        var num = $('sq-total-num'), bar = $('sq-total-bar'), role = $('sq-total-role');
+        if (leftMs <= 0) {
+          num.textContent = '0:00'; num.classList.add('low'); bar.style.width = '0%';
+          forceFinish(); return;
+        }
+        num.textContent = fmtClock(leftMs);
+        num.classList.toggle('low', leftMs <= 60000);
+        bar.style.width = (leftMs / TOTAL_MS * 100) + '%';
+        role.setAttribute('aria-valuenow', String(Math.ceil(leftMs / 1000)));
+        run.totalTimerId = setTimeout(tick, 200);
+      }
+      tick();
+    }
+    function forceFinish() {
+      if (!run || run.done) return;
+      if (run.cur) {
+        if (run.cur.advanceId) { clearTimeout(run.cur.advanceId); run.cur.advanceId = null; }
+        if (run.cur.timerId) { clearTimeout(run.cur.timerId); run.cur.timerId = null; }
+        if (!run.cur.answered) { run.cur.answered = true; recordWrong(run.cur.q, null); }
+      }
+      for (var i = run.idx + 1; i < run.queue.length; i++) recordWrong(run.queue[i], null);
+      finish();
+    }
+
+    // ===== 结算 =====
+    function finish() {
+      if (run.done) return;
+      run.done = true;
+      if (run.totalTimerId) { clearTimeout(run.totalTimerId); run.totalTimerId = null; }
+      if (run.cur && run.cur.timerId) { clearTimeout(run.cur.timerId); run.cur.timerId = null; }
+      var total = run.queue.length;
+      var score = run.correct;
+      var wrongN = total - score;
+      var avg = run.answeredCount ? (run.answeredMs / run.answeredCount / 1000) : 0;
+
+      // 累计错题本（含本场之前存的）
+      var ids = run.wrongIds.slice();
+      loadSaved().forEach(function (id) { if (ids.indexOf(id) < 0) ids.push(id); });
+      run.wrongAllTime = ids;
+      saveState();
+
+      $('sq-score').textContent = String(score);
+      $('sq-total').textContent = String(total);
+      var modeName = run.mode === 'full' ? '全真模式（8 分钟总计时）' : (run.mode === 'exam' ? '单题计时（每题 15 秒）' : '练习模式');
+      var usedSec = Math.round((Date.now() - run.startAt) / 1000);
+      var usedStr = Math.floor(usedSec / 60) + ' 分 ' + (usedSec % 60) + ' 秒';
+      $('sq-result-meta').textContent =
+        modeName + ' · 用时 ' + usedStr + ' · 平均作答 ' + avg.toFixed(1) + ' 秒/题' +
+        (wrongN === 0 ? ' · 全对，漂亮！' : ' · 错/未答 ' + wrongN + ' 题，看下方错题本');
+
+      var list = $('sq-wrong-list');
+      if (run.wrongDetail.length === 0) {
+        $('sq-wrong-card').hidden = true;
+      } else {
+        $('sq-wrong-card').hidden = false;
+        $('sq-wrong-count').textContent = String(run.wrongDetail.length);
+        list.innerHTML = run.wrongDetail.map(function (w) {
+          return '<div class="sq-wrong-item">' +
+            '<div class="text-small sq-subtitle">' + esc(w.tag) + '</div>' +
+            '<div style="margin:2px 0 4px;">' + esc(w.q) + '</div>' +
+            '<div class="text-small">✓ <strong>' + esc(w.ansText) + '</strong></div>' +
+            (w.picked ? '<div class="text-small sq-subtitle">✗ 你选了：' + esc(w.picked) + '</div>' : '<div class="text-small sq-subtitle">✗ 未作答（超时）</div>') +
+            '<div class="text-small" style="margin-top:2px;">' + esc(w.tip) + '</div>' +
+            '</div>';
+        }).join('');
+      }
+
+      var b2 = $('sq-btn-wrong2');
+      if (ids.length > 0) {
+        b2.hidden = false;
+        b2.textContent = '只刷错题（' + ids.length + ' 题）';
+      } else {
+        b2.hidden = true;
+      }
+      show('result');
+    }
+
+    $('sq-btn-again').addEventListener('click', function () {
+      startRun(run.mode, run.base);
+    });
+    $('sq-btn-wrong2').addEventListener('click', function () {
+      var ids = run.wrongAllTime || loadSaved();
+      var list = ids.map(function (id) { return ALLQ[id]; }).filter(Boolean);
+      if (list.length) startRun('exam', list);
+    });
+    $('sq-btn-home').addEventListener('click', function () {
+      renderStartButtons();
+      show('start');
+    });
+
+    // ===== 键盘 =====
+    document.addEventListener('keydown', function (ev) {
+      if (!run || screens.quiz.hidden) return;
+      var cur = run.cur;
+      if (!cur) return;
+      var k = ev.key;
+      if (!cur.answered) {
+        var map = { '1': 0, '2': 1, '3': 2, '4': 3 };
+        if (k in map) {
+          var btns = $('sq-options').querySelectorAll('.opt-btn');
+          if (btns[map[k]] && !btns[map[k]].disabled) answer(map[k]);
+          ev.preventDefault();
+        }
+      } else {
+        if (k === 'Enter' || k === ' ') { next(); ev.preventDefault(); }
+      }
+    });
+
+    renderStartButtons();
+  })();
+  </script>
+</div>
+
+<script>
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('./sw.js').catch(function () {});
+  }
+</script>
+</body>
+</html>
