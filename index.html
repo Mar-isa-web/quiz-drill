@@ -5,13 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Servlet 第3章 · 小测模拟器</title>
 <meta name="description" content="Servlet 考点刷题：全真计时模拟、错题本、变式专练">
-<meta name="theme-color" content="#1f2937">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon-192.png" type="image/png">
-<link rel="apple-touch-icon" href="icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="小测模拟">
 <style>
   :root { color-scheme: light dark; }
   :root {
@@ -80,6 +73,13 @@
     };
   })();
 </script>
+<meta name="theme-color" content="#1f2937">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="小测模拟">
 </head>
 <body>
 <div id="servlet-quiz-app">
@@ -103,7 +103,33 @@
     #servlet-quiz-app .sq-feedback.bad { background: color-mix(in srgb, var(--red) 10%, transparent); }
     #servlet-quiz-app .sq-wrong-item { padding: 10px 0; border-top: 1px solid var(--border); }
     #servlet-quiz-app .sq-wrong-item:first-of-type { border-top: none; }
-    #servlet-quiz-app .sq-score-big { font-size: 32px; font-weight: 500; font-variant-numeric: tabular-nums; }
+    #servlet-quiz-app .sq-score-big { font-size: 40px; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1.15; }
+    /* 首页 hero */
+    #servlet-quiz-app .sq-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 6px 0 2px; }
+    #servlet-quiz-app .sq-appicon { width: 56px; height: 56px; border-radius: 16px; background: var(--primary); color: var(--primary-foreground); display: flex; align-items: center; justify-content: center; font-size: 28px; }
+    #servlet-quiz-app .sq-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+    #servlet-quiz-app .sq-chip { padding: 3px 12px; border-radius: 999px; font-size: 12px; background: var(--muted); color: var(--muted-foreground); }
+    /* 选项圆标 */
+    #servlet-quiz-app .opt-btn { align-items: flex-start; border-radius: 12px; padding: 10px 14px; }
+    #servlet-quiz-app .opt-key { flex: none; width: 26px; height: 26px; margin-top: 1px; border-radius: 999px; border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; }
+    #servlet-quiz-app .opt-text { flex: 1; }
+    #servlet-quiz-app .opt-btn.is-correct .opt-key { border-color: var(--green); color: var(--green); }
+    #servlet-quiz-app .opt-btn.is-wrong .opt-key { border-color: var(--red); color: var(--red); }
+    /* 答题反馈 */
+    #servlet-quiz-app .sq-feedback { display: flex; gap: 10px; align-items: flex-start; }
+    #servlet-quiz-app .sq-fb-ico { flex: none; font-weight: 500; }
+    #servlet-quiz-app .sq-feedback.ok .sq-fb-ico { color: var(--green); }
+    #servlet-quiz-app .sq-feedback.bad .sq-fb-ico { color: var(--red); }
+    /* 结算页 */
+    #servlet-quiz-app .sq-result-hero { text-align: center; padding: 4px 0 2px; }
+    #servlet-quiz-app .sq-score-total { font-size: 18px; color: var(--muted-foreground); }
+    #servlet-quiz-app .sq-acc { display: inline-block; margin-top: 8px; padding: 3px 14px; border-radius: 999px; font-size: 12px; }
+    #servlet-quiz-app .sq-acc.good { background: color-mix(in srgb, var(--green) 14%, transparent); color: var(--green); }
+    #servlet-quiz-app .sq-acc.mid { background: var(--muted); color: var(--muted-foreground); }
+    #servlet-quiz-app .sq-acc.bad { background: color-mix(in srgb, var(--red) 12%, transparent); color: var(--red); }
+    #servlet-quiz-app .sq-ok-ico { color: var(--green); }
+    #servlet-quiz-app .sq-bad-ico { color: var(--red); }
+    #servlet-quiz-app #sq-question { font-size: 16px; }
     /* ===== 触屏与窄屏适配 ===== */
     #servlet-quiz-app .btn { -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }
     #servlet-quiz-app .sq-cardpad { --sq-pad-x: 20px; --sq-pad-y: 20px; padding: var(--sq-pad-y) var(--sq-pad-x); }
@@ -117,6 +143,7 @@
     @media (pointer: coarse) {
       #servlet-quiz-app .btn { min-height: 44px; }
       #servlet-quiz-app .opt-btn { min-height: 48px; }
+      #servlet-quiz-app .sq-timer-num { font-size: 22px; }
       #servlet-quiz-app .sq-kbd-hint { display: none; }
     }
     @media (max-width: 480px) {
@@ -124,8 +151,10 @@
       #servlet-quiz-app #sq-question { font-size: 16px; }
       #servlet-quiz-app .sq-result-actions .btn { flex: 1 1 100%; }
     }
-    #servlet-quiz-app .sq-start-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
-    #servlet-quiz-app .sq-start-btns .btn { width: 100%; justify-content: space-between; }
+    #servlet-quiz-app .sq-start-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+    #servlet-quiz-app .sq-start-btns .btn { width: 100%; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px; min-height: 58px; padding: 9px 16px; }
+    #servlet-quiz-app .sq-btn-sub { font-size: 12px; font-weight: 400; color: var(--muted-foreground); }
+    #servlet-quiz-app .btn-primary .sq-btn-sub { color: var(--primary-foreground); opacity: .75; }
     @media (prefers-reduced-motion: reduce) {
       #servlet-quiz-app * { transition: none !important; animation: none !important; }
     }
@@ -133,16 +162,21 @@
 
   <!-- 开始页 -->
   <div class="sq-screen card sq-cardpad" id="sq-start">
-    <div class="sq-title"><h2 style="margin:0;">Servlet 第3章 · 考场模拟</h2></div>
-    <div class="sq-subtitle">核心 33 题（对准考题题号）+ 28 道变式题（覆盖每个考点的其余子知识点）· 全部乱序</div>
-    <div class="viz-row" style="margin-top:10px;">
-      <span class="viz-badge">学习通规则：33 题 · 8 分钟总计时 · 到时强制收卷</span>
+    <div class="sq-hero">
+      <div class="sq-appicon" aria-hidden="true">✓</div>
+      <div class="sq-title"><h2 style="margin:0;">Servlet 第3章 · 小测模拟</h2></div>
+      <div class="sq-subtitle">核心 33 题（对准考题题号）+ 28 道变式题（覆盖其余子知识点）· 每次乱序</div>
+      <div class="sq-chips">
+        <span class="sq-chip">学习通规则：8 分钟强制收卷</span>
+        <span class="sq-chip">错题本</span>
+        <span class="sq-chip">离线可用</span>
+      </div>
     </div>
     <div class="sq-start-btns">
-      <button type="button" class="btn btn-primary" id="sq-btn-exam">全真模拟 · 33 题 / 8 分钟（到时强制收卷）</button>
-      <button type="button" class="btn" id="sq-btn-quick">单题计时 · 快刷 15 题 × 15 秒</button>
-      <button type="button" class="btn" id="sq-btn-practice">练习模式 · 核心 33 题 · 不限时，答后即看解析</button>
-      <button type="button" class="btn" id="sq-btn-variant">变式专练 · 61 题全覆盖 · 不限时，答后即看解析</button>
+      <button type="button" class="btn btn-primary" id="sq-btn-exam"><span>全真模拟 · 33 题 / 8 分钟</span><span class="sq-btn-sub">到时强制收卷，还原真实考场压力</span></button>
+      <button type="button" class="btn" id="sq-btn-quick"><span>单题计时快刷 · 15 题 × 15 秒</span><span class="sq-btn-sub">碎片时间来一轮，保持手感</span></button>
+      <button type="button" class="btn" id="sq-btn-practice"><span>练习模式 · 核心 33 题</span><span class="sq-btn-sub">不限时，答完立即看解析与记忆点</span></button>
+      <button type="button" class="btn" id="sq-btn-variant"><span>变式专练 · 61 题全覆盖</span><span class="sq-btn-sub">每个考点的子知识点全部兜底</span></button>
       <button type="button" class="btn" id="sq-btn-wrong" hidden></button>
     </div>
     <div class="text-small sq-subtitle sq-kbd-hint" style="margin-top:12px;">快捷键：数字 1–4 选答案，回车 / 空格 立即进下一题 · 全真模式答完自动跳题，最后 1 分钟倒计时变红</div>
@@ -187,9 +221,12 @@
   <!-- 结果页 -->
   <div class="sq-screen" id="sq-result" hidden>
     <div class="card sq-cardpad">
-      <h2 style="margin:0 0 6px;">本场成绩</h2>
-      <div class="sq-score-big"><span id="sq-score">0</span> / <span id="sq-total">33</span></div>
-      <div class="sq-subtitle" id="sq-result-meta" style="margin-top:2px;"></div>
+      <div class="sq-result-hero">
+        <div class="sq-subtitle text-small">本场成绩 · 答对题数</div>
+        <div class="sq-score-big"><span id="sq-score">0</span><span class="sq-score-total"> / <span id="sq-total">33</span></span></div>
+        <span class="sq-acc mid" id="sq-acc">--</span>
+      </div>
+      <div class="sq-chips" id="sq-result-chips" style="margin-top:10px;"></div>
       <div class="viz-row sq-result-actions" style="margin-top:14px; gap:8px;">
         <button type="button" class="btn btn-primary" id="sq-btn-again">再刷一遍（乱序）</button>
         <button type="button" class="btn" id="sq-btn-wrong2" hidden>只刷错题</button>
@@ -507,7 +544,7 @@
         var b = document.createElement('button');
         b.type = 'button';
         b.className = 'btn opt-btn';
-        b.innerHTML = '<span class="opt-key">' + (dispIdx + 1) + '</span><span>' + esc(item.opts[origIdx]) + '</span>';
+        b.innerHTML = '<span class="opt-key">' + (dispIdx + 1) + '</span><span class="opt-text">' + esc(item.opts[origIdx]) + '</span>';
         b.addEventListener('click', function () { answer(dispIdx); });
         box.appendChild(b);
       });
@@ -599,9 +636,9 @@
       var head = prefix ? prefix + ' · ' : '';
       var html;
       if (right) {
-        html = '<div class="sq-feedback ok"><strong>答对了</strong><div class="text-small" style="margin-top:2px;">' + esc(run.cur.q.tip) + '</div></div>';
+        html = '<div class="sq-feedback ok"><span class="sq-fb-ico">✓</span><div><strong>答对了</strong><div class="text-small sq-subtitle" style="margin-top:2px;">' + esc(run.cur.q.tip) + '</div></div></div>';
       } else {
-        html = '<div class="sq-feedback bad"><strong>' + head + '正确答案：' + esc(run.cur.q.opts[run.cur.q.ans]) + '</strong><div class="text-small" style="margin-top:2px;">' + esc(run.cur.q.tip) + '</div></div>';
+        html = '<div class="sq-feedback bad"><span class="sq-fb-ico">✕</span><div><strong>' + head + '正确答案：' + esc(run.cur.q.opts[run.cur.q.ans]) + '</strong><div class="text-small sq-subtitle" style="margin-top:2px;">' + esc(run.cur.q.tip) + '</div></div></div>';
       }
       $('sq-feedback-wrap').innerHTML = html;
     }
@@ -670,12 +707,18 @@
 
       $('sq-score').textContent = String(score);
       $('sq-total').textContent = String(total);
-      var modeName = run.mode === 'full' ? '全真模式（8 分钟总计时）' : (run.mode === 'exam' ? '单题计时（每题 15 秒）' : '练习模式');
+      var modeName = run.mode === 'full' ? '全真模式' : (run.mode === 'exam' ? '单题计时' : '练习模式');
       var usedSec = Math.round((Date.now() - run.startAt) / 1000);
-      var usedStr = Math.floor(usedSec / 60) + ' 分 ' + (usedSec % 60) + ' 秒';
-      $('sq-result-meta').textContent =
-        modeName + ' · 用时 ' + usedStr + ' · 平均作答 ' + avg.toFixed(1) + ' 秒/题' +
-        (wrongN === 0 ? ' · 全对，漂亮！' : ' · 错/未答 ' + wrongN + ' 题，看下方错题本');
+      var usedStr = Math.floor(usedSec / 60) + ':' + (usedSec % 60 < 10 ? '0' : '') + (usedSec % 60);
+      var pct = total ? Math.round(score / total * 100) : 0;
+      var acc = $('sq-acc');
+      acc.textContent = '正确率 ' + pct + '%' + (wrongN === 0 ? ' · 全对，漂亮！' : '');
+      acc.className = 'sq-acc ' + (pct >= 80 ? 'good' : (pct >= 60 ? 'mid' : 'bad'));
+      $('sq-result-chips').innerHTML =
+        '<span class="sq-chip">' + modeName + '</span>' +
+        '<span class="sq-chip">用时 ' + usedStr + '</span>' +
+        '<span class="sq-chip">平均 ' + avg.toFixed(1) + ' 秒/题</span>' +
+        (wrongN === 0 ? '' : '<span class="sq-chip">错/未答 ' + wrongN + ' 题</span>');
 
       var list = $('sq-wrong-list');
       if (run.wrongDetail.length === 0) {
@@ -687,8 +730,8 @@
           return '<div class="sq-wrong-item">' +
             '<div class="text-small sq-subtitle">' + esc(w.tag) + '</div>' +
             '<div style="margin:2px 0 4px;">' + esc(w.q) + '</div>' +
-            '<div class="text-small">✓ <strong>' + esc(w.ansText) + '</strong></div>' +
-            (w.picked ? '<div class="text-small sq-subtitle">✗ 你选了：' + esc(w.picked) + '</div>' : '<div class="text-small sq-subtitle">✗ 未作答（超时）</div>') +
+            '<div class="text-small"><span class="sq-ok-ico">✓</span> <strong>' + esc(w.ansText) + '</strong></div>' +
+            (w.picked ? '<div class="text-small sq-subtitle"><span class="sq-bad-ico">✗</span> 你选了：' + esc(w.picked) + '</div>' : '<div class="text-small sq-subtitle"><span class="sq-bad-ico">✗</span> 未作答（超时）</div>') +
             '<div class="text-small" style="margin-top:2px;">' + esc(w.tip) + '</div>' +
             '</div>';
         }).join('');
