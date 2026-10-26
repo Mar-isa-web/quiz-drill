@@ -1,15 +1,1 @@
-{
-  "name": "Servlet 第3章小测模拟器",
-  "short_name": "小测模拟",
-  "description": "Servlet 考点刷题：全真计时模拟、错题本、变式专练",
-  "start_url": "./index.html",
-  "scope": "./",
-  "display": "standalone",
-  "background_color": "#f6f7f9",
-  "theme_color": "#1f2937",
-  "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
-}
+���}�-���jx�z�
