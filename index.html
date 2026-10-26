@@ -799,6 +799,16 @@
           return { wrongIds: ids, stats: (pc.stats && typeof pc.stats === 'object') ? pc.stats : {} };
         }
       } catch (e) {}
+      try {
+        var raw = localStorage.getItem('sq-quiz-state');
+        if (raw) {
+          var d = JSON.parse(raw);
+          var ids2 = Array.isArray(d.wrongIds) ? d.wrongIds.filter(function (id) {
+            return Object.prototype.hasOwnProperty.call(ALLQ, id);
+          }) : [];
+          return { wrongIds: ids2, stats: (d.stats && typeof d.stats === 'object') ? d.stats : {} };
+        }
+      } catch (e) {}
       return { wrongIds: [], stats: {} };
     }
     function loadSaved() { return loadState().wrongIds; }
@@ -815,6 +825,10 @@
           var ids = (run && run.wrongAllTime) ? run.wrongAllTime : loadSaved();
           window.zcode.setWidgetState({ privateContent: { wrongIds: ids, stats: STATS } }).catch(function () {});
         }
+      } catch (e) {}
+      try {
+        var ids2 = (run && run.wrongAllTime) ? run.wrongAllTime : loadSaved();
+        localStorage.setItem('sq-quiz-state', JSON.stringify({ wrongIds: ids2, stats: STATS }));
       } catch (e) {}
     }
     document.addEventListener('zcode:set_globals', function (ev) {
