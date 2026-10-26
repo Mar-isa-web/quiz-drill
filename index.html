@@ -1,1 +1,1287 @@
-�w^�f
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>刷题模拟器 · Servlet / 计组期末</title>
+<meta name="description" content="科目刷题：Servlet 考点 + 计组期末真题单选；全真计时模拟、错题歼灭、背题速览、战况统计">
+<style>
+  :root { color-scheme: light dark; }
+  :root {
+    --background:#f6f7f9; --foreground:#1a1d21;
+    --card:#ffffff; --card-foreground:#1a1d21;
+    --muted:#eceef1; --muted-foreground:#5c6470; --border:#d8dce2;
+    --primary:#1f2937; --primary-foreground:#ffffff;
+    --green:#1a9c6b; --red:#d64545;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background:#15171b; --foreground:#e8eaee;
+      --card:#1e2126; --card-foreground:#e8eaee;
+      --muted:#2a2e35; --muted-foreground:#a2aab6; --border:#343941;
+      --primary:#e8eaee; --primary-foreground:#15171b;
+      --green:#3ecf8e; --red:#f87171;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; padding:20px 16px 40px;
+    background:var(--background); color:var(--foreground);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:14px; line-height:1.5;
+    -webkit-text-size-adjust:100%;
+  }
+  @media (max-width: 480px) {
+    body { padding: 20px 10px calc(env(safe-area-inset-bottom, 0px) + 28px); }
+  }
+  h1,h2,h3 { line-height:1.3; margin:0; }
+  .card { background:var(--card); color:var(--card-foreground); border:1px solid var(--border); border-radius:12px; }
+  .btn {
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    min-height:32px; padding:4px 14px; border-radius:8px;
+    border:1px solid var(--border); background:var(--card); color:var(--foreground);
+    font:inherit; cursor:pointer; text-decoration:none;
+  }
+  .btn:hover { border-color:var(--muted-foreground); }
+  .btn-primary { background:var(--primary); color:var(--primary-foreground); border-color:transparent; }
+  .btn-primary:hover { opacity:.9; border-color:transparent; }
+  .btn-ghost { background:transparent; border-color:transparent; }
+  .btn-ghost:hover { border-color:var(--border); }
+  .progress { display:flex; height:8px; border-radius:999px; background:var(--muted); overflow:hidden; }
+  .progress-bar { height:100%; background:var(--primary); border-radius:999px; transition:width .15s linear; }
+  .viz-badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px; background:var(--muted); color:var(--foreground); }
+  .viz-row { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+  .text-small { font-size:12px; }
+  .tabular-nums { font-variant-numeric:tabular-nums; }
+  [data-lucide] { display:inline-block; width:16px; height:16px; font-style:normal; line-height:1; overflow:hidden; }
+  [data-lucide="timer"]::before { content:"\23F1\FE0F"; }
+  [data-lucide="alarm-clock"]::before { content:"\23F0\FE0F"; }
+</style>
+<script>
+  window.zcode = (function () {
+    var KEY = 'sq-quiz-state-v1';
+    function load() {
+      try { return JSON.parse(localStorage.getItem(KEY) || 'null'); }
+      catch (e) { return null; }
+    }
+    return {
+      get widgetState() { return load(); },
+      setWidgetState: function (p) {
+        try { localStorage.setItem(KEY, JSON.stringify(p || null)); } catch (e) {}
+        return Promise.resolve(true);
+      }
+    };
+  })();
+</script>
+<meta name="theme-color" content="#1f2937">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="小测模拟">
+</head>
+<body>
+<div id="servlet-quiz-app">
+
+  <style>
+    #servlet-quiz-app { max-width: 720px; margin: 0 auto; }
+    #servlet-quiz-app [hidden] { display: none !important; }
+    #servlet-quiz-app .sq-title { font-weight: 500; margin-bottom: 4px; }
+    #servlet-quiz-app .sq-subtitle { color: var(--muted-foreground); }
+    #servlet-quiz-app .sq-options { display: flex; flex-direction: column; gap: 10px; margin-top: auto; padding-top: 20px; }
+    /* 答题页纵向弹性布局：题卡在上，选项推到屏幕中下部 */
+    #servlet-quiz-app #sq-quiz { display: flex; flex-direction: column; min-height: 76vh; min-height: calc(100dvh - 130px); }
+    #servlet-quiz-app .sq-topbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+    #servlet-quiz-app .sq-topbar-title { font-weight: 500; }
+    #servlet-quiz-app .sq-timeline { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    #servlet-quiz-app .sq-qhead { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+    #servlet-quiz-app .sq-optcard {
+      display: flex; align-items: flex-start; gap: 10px; width: 100%; text-align: left;
+      border: 1px solid var(--border); border-radius: 12px; background: var(--card); color: var(--foreground);
+      padding: 12px 14px; font: inherit; cursor: pointer; min-height: 48px; line-height: 1.45; white-space: normal;
+    }
+    #servlet-quiz-app .sq-optcard:hover { border-color: var(--muted-foreground); }
+    #servlet-quiz-app .sq-optcard:disabled { cursor: default; }
+    #servlet-quiz-app .sq-optcard:disabled:not(.is-correct):not(.is-wrong) { opacity: .55; }
+    #servlet-quiz-app .sq-optcard.is-correct { border-color: var(--green); box-shadow: inset 0 0 0 1px var(--green); }
+    #servlet-quiz-app .sq-optcard.is-wrong { border-color: var(--red); box-shadow: inset 0 0 0 1px var(--red); }
+    #servlet-quiz-app .opt-key { flex: none; width: 26px; height: 26px; margin-top: 1px; border-radius: 999px; border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; font-size: 13px; color: var(--muted-foreground); }
+    #servlet-quiz-app .opt-text { flex: 1; }
+    #servlet-quiz-app .sq-optcard.is-correct .opt-key { border-color: var(--green); color: var(--green); }
+    #servlet-quiz-app .sq-optcard.is-wrong .opt-key { border-color: var(--red); color: var(--red); }
+    /* 选项状态色由 .sq-optcard 规则提供 */
+    #servlet-quiz-app .sq-timer-num { font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
+    #servlet-quiz-app .sq-timer-num.low { color: var(--red); }
+    #servlet-quiz-app .sq-feedback { margin-top: 12px; border-radius: 8px; padding: 10px 12px; }
+    #servlet-quiz-app .sq-feedback.ok { background: color-mix(in srgb, var(--green) 12%, transparent); }
+    #servlet-quiz-app .sq-feedback.bad { background: color-mix(in srgb, var(--red) 10%, transparent); }
+    #servlet-quiz-app .sq-wrong-item { padding: 10px 0; border-top: 1px solid var(--border); }
+    #servlet-quiz-app .sq-wrong-item:first-of-type { border-top: none; }
+    #servlet-quiz-app .sq-score-big { font-size: 40px; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1.15; }
+    /* 首页 hero */
+    #servlet-quiz-app .sq-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 14px 0 6px; }
+    #servlet-quiz-app .sq-appicon { width: 56px; height: 56px; border-radius: 16px; background: var(--primary); color: var(--green); display: flex; align-items: center; justify-content: center; font-size: 28px; }
+    #servlet-quiz-app .sq-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+    #servlet-quiz-app .sq-chip { padding: 3px 12px; border-radius: 999px; font-size: 12px; background: var(--muted); color: var(--muted-foreground); }
+    /* 选项圆标（字母 A–D） */
+    /* 答题反馈 */
+    #servlet-quiz-app .sq-feedback { display: flex; gap: 10px; align-items: flex-start; }
+    #servlet-quiz-app .sq-fb-ico { flex: none; font-weight: 500; }
+    #servlet-quiz-app .sq-feedback.ok .sq-fb-ico { color: var(--green); }
+    #servlet-quiz-app .sq-feedback.bad .sq-fb-ico { color: var(--red); }
+    /* 结算页 */
+    #servlet-quiz-app .sq-result-hero { text-align: center; padding: 4px 0 2px; }
+    #servlet-quiz-app .sq-score-total { font-size: 18px; color: var(--muted-foreground); }
+    #servlet-quiz-app .sq-acc { display: inline-block; margin-top: 8px; padding: 3px 14px; border-radius: 999px; font-size: 12px; }
+    #servlet-quiz-app .sq-acc.good { background: color-mix(in srgb, var(--green) 14%, transparent); color: var(--green); }
+    #servlet-quiz-app .sq-acc.mid { background: var(--muted); color: var(--muted-foreground); }
+    #servlet-quiz-app .sq-acc.bad { background: color-mix(in srgb, var(--red) 12%, transparent); color: var(--red); }
+    #servlet-quiz-app .sq-ok-ico { color: var(--green); }
+    #servlet-quiz-app .sq-bad-ico { color: var(--red); }
+    #servlet-quiz-app #sq-question { font-size: 16px; }
+    /* ===== 触屏与窄屏适配 ===== */
+    #servlet-quiz-app .btn { -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }
+    #servlet-quiz-app .sq-cardpad { --sq-pad-x: 20px; --sq-pad-y: 20px; padding: var(--sq-pad-y) var(--sq-pad-x); }
+    @media (pointer: coarse) {
+      #servlet-quiz-app .btn { min-height: 44px; }
+      #servlet-quiz-app .sq-optcard { min-height: 52px; }
+      #servlet-quiz-app .sq-timer-num { font-size: 22px; }
+      #servlet-quiz-app .sq-kbd-hint { display: none; }
+    }
+    @media (max-width: 480px) {
+      #servlet-quiz-app .sq-cardpad { --sq-pad-x: 14px; --sq-pad-y: 16px; }
+      #servlet-quiz-app #sq-question { font-size: 16px; }
+      #servlet-quiz-app .sq-result-actions .btn { flex: 1 1 100%; }
+    }
+    #servlet-quiz-app .sq-exit { min-height: 34px; padding: 2px 10px; font-size: 12px; }
+    /* 工具行 / 统计 / 背题速览 */
+    #servlet-quiz-app .sq-tools { display: flex; gap: 8px; margin-top: 10px; }
+    #servlet-quiz-app .sq-tools .btn { flex: 1 1 0; }
+    #servlet-quiz-app .sq-search { width: 100%; padding: 9px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--foreground); font: inherit; }
+    #servlet-quiz-app .sq-rev-meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 10px; }
+    #servlet-quiz-app .sq-rev-item { border: 1px solid var(--border); border-radius: 10px; margin-top: 8px; overflow: hidden; }
+    #servlet-quiz-app .sq-rev-item summary { cursor: pointer; display: flex; gap: 8px; align-items: baseline; padding: 10px 12px; list-style: none; }
+    #servlet-quiz-app .sq-rev-item summary::-webkit-details-marker { display: none; }
+    #servlet-quiz-app .sq-rev-chev { flex: none; color: var(--muted-foreground); font-size: 11px; transition: transform .15s; }
+    #servlet-quiz-app .sq-rev-item[open] .sq-rev-chev { transform: rotate(90deg); }
+    #servlet-quiz-app .sq-rev-num { flex: none; min-width: 2.2em; font-size: 12px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+    #servlet-quiz-app .sq-rev-q { flex: 1; }
+    #servlet-quiz-app .sq-rev-body { padding: 10px 12px; border-top: 1px solid var(--border); background: color-mix(in srgb, var(--green) 7%, transparent); }
+    #servlet-quiz-app .sq-stat-top { display: flex; gap: 10px; margin-top: 12px; }
+    #servlet-quiz-app .sq-stat-cell { flex: 1; text-align: center; padding: 12px 8px; border-radius: 10px; background: var(--muted); }
+    #servlet-quiz-app .sq-stat-val { font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
+    #servlet-quiz-app .sq-stat-row { width: 100%; justify-content: flex-start; gap: 10px; margin-top: 8px; }
+    #servlet-quiz-app .sq-stat-rank { flex: none; min-width: 1.6em; font-size: 12px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+    #servlet-quiz-app .sq-stat-name { flex: none; min-width: 5.5em; text-align: left; }
+    #servlet-quiz-app .sq-stat-bar { flex: 1 1 0; }
+    #servlet-quiz-app .sq-bar-weak .progress-bar { background: var(--red); }
+    #servlet-quiz-app .sq-bar-ok .progress-bar { background: var(--green); }
+    #servlet-quiz-app .sq-subjects { display:flex; gap:8px; margin-top:14px; }
+    #servlet-quiz-app .sq-subjects .btn { flex:1; min-height:46px; flex-direction:column; gap:2px; padding:6px 8px; }
+    #servlet-quiz-app .sq-subjects .btn.active { border-color:var(--primary); box-shadow: inset 0 0 0 1px var(--primary); font-weight:600; }
+    #servlet-quiz-app .sq-sub-name-sub { font-size:11px; font-weight:400; color:var(--muted-foreground); }
+    #servlet-quiz-app .sq-start-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+    #servlet-quiz-app .sq-start-btns .btn { width: 100%; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px; min-height: 58px; padding: 9px 16px; }
+    #servlet-quiz-app .sq-btn-sub { font-size: 12px; font-weight: 400; color: var(--muted-foreground); }
+    #servlet-quiz-app .btn-primary .sq-btn-sub { color: var(--primary-foreground); opacity: .75; }
+    @media (prefers-reduced-motion: reduce) {
+      #servlet-quiz-app * { transition: none !important; animation: none !important; }
+    }
+  </style>
+
+  <!-- 开始页 -->
+  <div class="sq-screen card sq-cardpad" id="sq-start">
+    <div class="sq-hero">
+      <div class="sq-appicon" aria-hidden="true">✓</div>
+      <div class="sq-title"><h2 style="margin:0;" id="sq-h2">刷题模拟</h2></div>
+      <div class="sq-subtitle" id="sq-subtitle-line">核心 33 题（对准考题题号）+ 28 道变式题（覆盖其余子知识点）· 每次乱序</div>
+      <div class="sq-chips">
+        <span class="sq-chip">8 分钟强制收卷</span>
+        <span class="sq-chip">61 题题库</span>
+        <span class="sq-chip">错题本</span>
+        <span class="sq-chip">离线可用</span>
+      </div>
+    </div>
+    <div class="sq-subjects" id="sq-subjects"></div>
+    <div class="sq-start-btns">
+      <button type="button" class="btn btn-primary" id="sq-btn-exam"><span id="sq-exam-main">全真模拟 · 33 题 / 8 分钟</span><span class="sq-btn-sub" id="sq-exam-sub">到时强制收卷，还原真实考场压力</span></button>
+      <button type="button" class="btn" id="sq-btn-quick"><span id="sq-quick-main">单题计时快刷 · 15 题 × 15 秒</span><span class="sq-btn-sub" id="sq-quick-sub">碎片时间来一轮，保持手感</span></button>
+      <button type="button" class="btn" id="sq-btn-practice"><span id="sq-practice-main">练习模式 · 核心 33 题</span><span class="sq-btn-sub" id="sq-practice-sub">不限时，答完立即看解析与记忆点</span></button>
+      <button type="button" class="btn" id="sq-btn-variant"><span id="sq-variant-main">变式专练 · 61 题全覆盖</span><span class="sq-btn-sub" id="sq-variant-sub">每个考点的子知识点全部兜底</span></button>
+      <button type="button" class="btn" id="sq-btn-wrong" hidden></button>
+    </div>
+    <div class="sq-tools">
+      <button type="button" class="btn btn-ghost" id="sq-btn-review">背题速览</button>
+      <button type="button" class="btn btn-ghost" id="sq-btn-stats">战况统计</button>
+    </div>
+    <div class="text-small sq-subtitle sq-kbd-hint" style="margin-top:12px;">快捷键：数字 1–4 或字母 A–D 选答案，回车 / 空格 立即进下一题 · 全真模式答完自动跳题</div>
+    <div class="text-small sq-subtitle" style="margin-top:8px; text-align:center; opacity:.8;">当前版本 <strong>v1.6</strong> · 选项显示 A/B/C/D 字母即为最新版</div>
+  </div>
+
+  <!-- 答题页 -->
+  <div class="sq-screen" id="sq-quiz" hidden>
+    <div class="sq-topbar">
+      <button type="button" class="btn btn-ghost sq-exit" id="sq-btn-exit" aria-label="退出本局返回首页">‹ 退出</button>
+      <span class="sq-topbar-title">小测模拟</span>
+      <span class="text-small sq-subtitle">答对 <span id="sq-live-score" class="tabular-nums">0</span></span>
+    </div>
+
+    <div id="sq-total-wrap" class="sq-timeline" style="display:none;">
+      <div class="progress" style="flex:1;" role="progressbar" aria-label="总剩余时间" aria-valuemin="0" aria-valuemax="480" aria-valuenow="480" id="sq-total-role">
+        <div class="progress-bar" id="sq-total-bar" style="width:100%;"></div>
+      </div>
+      <span class="sq-timer-num tabular-nums" id="sq-total-num">8:00</span>
+    </div>
+    <div id="sq-timer-wrap" class="sq-timeline" style="display:none;">
+      <div class="progress" style="flex:1;" role="progressbar" aria-label="剩余时间" aria-valuemin="0" aria-valuemax="15" aria-valuenow="15" id="sq-timer-role">
+        <div class="progress-bar" id="sq-timer-bar" style="width:100%;"></div>
+      </div>
+      <span class="sq-timer-num tabular-nums" id="sq-timer-num">15</span>
+    </div>
+
+    <div class="card sq-cardpad">
+      <div class="sq-qhead">
+        <span class="text-small sq-subtitle tabular-nums" id="sq-progress">第 1/33 题</span>
+        <span class="viz-badge" id="sq-tag">单选题</span>
+      </div>
+      <div id="sq-question" aria-live="polite" style="font-weight:500;"></div>
+    </div>
+
+    <div class="sq-options" id="sq-options" role="group" aria-label="选项"></div>
+    <div id="sq-feedback-wrap" aria-live="polite"></div>
+    <div style="margin-top:12px; display:flex; justify-content:flex-end;">
+      <button type="button" class="btn btn-primary" id="sq-btn-next" hidden>下一题（回车）</button>
+    </div>
+  </div>
+
+  <!-- 结果页 -->
+  <div class="sq-screen" id="sq-result" hidden>
+    <div class="card sq-cardpad">
+      <div class="sq-result-hero">
+        <div class="sq-subtitle text-small">本场成绩 · 答对题数</div>
+        <div class="sq-score-big"><span id="sq-score">0</span><span class="sq-score-total"> / <span id="sq-total">33</span></span></div>
+        <span class="sq-acc mid" id="sq-acc">--</span>
+      </div>
+      <div class="sq-chips" id="sq-result-chips" style="margin-top:10px;"></div>
+      <div class="viz-row sq-result-actions" style="margin-top:14px; gap:8px;">
+        <button type="button" class="btn btn-primary" id="sq-btn-again">再刷一遍（乱序）</button>
+        <button type="button" class="btn" id="sq-btn-wrong2" hidden>只刷错题</button>
+        <button type="button" class="btn btn-ghost" id="sq-btn-home">返回首页</button>
+      </div>
+    </div>
+    <div class="card sq-cardpad" id="sq-wrong-card" style="margin-top:12px;" hidden>
+      <h3 style="margin:0 0 4px;">错题本（<span id="sq-wrong-count">0</span> 题）</h3>
+      <div class="text-small sq-subtitle" style="margin-bottom:8px;">睡前把这里过一遍，明天考前再看一眼。</div>
+      <div id="sq-wrong-list"></div>
+    </div>
+  </div>
+
+  <!-- 战况统计 -->
+  <div class="sq-screen card sq-cardpad" id="sq-stats" hidden>
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+      <h2 style="margin:0;">战况统计</h2>
+      <button type="button" class="btn btn-ghost sq-exit" id="sq-stats-back">‹ 返回</button>
+    </div>
+    <div id="sq-stats-body" style="margin-top:8px;"></div>
+  </div>
+
+  <!-- 背题速览 -->
+  <div class="sq-screen card sq-cardpad" id="sq-review" hidden>
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+      <h2 style="margin:0;">背题速览</h2>
+      <button type="button" class="btn btn-ghost sq-exit" id="sq-review-back">‹ 返回</button>
+    </div>
+    <input type="search" class="sq-search" id="sq-review-search" style="margin-top:10px;" placeholder="搜题干、知识点、答案关键词…" aria-label="搜索题目">
+    <div class="sq-tools" style="margin-top:8px;">
+      <button type="button" class="btn btn-ghost" id="sq-review-expand">全部展开</button>
+      <button type="button" class="btn btn-ghost" id="sq-review-collapse">全部收起</button>
+    </div>
+    <div id="sq-review-list" style="margin-top:6px;"></div>
+  </div>
+
+  <script>
+  (function () {
+    var root = document.getElementById('servlet-quiz-app');
+    if (!root) return;
+
+    var LIMIT = 15; // 每题秒数（开始一局时按科目刷新）
+
+    // ===== 题库：来自老师《第3章小测-考前精准复习资料》33 个考点 =====
+    var BANK = [
+      { id: 1, tag: 'Servlet本质', q: 'Servlet 是什么？',
+        opts: ['基于 Java 语言、运行在服务器端的“小程序”，本质是一个特殊的 Java 类', '嵌在 HTML 里、由浏览器解释执行的客户端脚本', '浏览器下载后本地运行的 Applet 小程序', '专门负责数据库连接与事务管理的中间件'],
+        ans: 0, tip: 'Servlet = 服务器端 Java 小程序，核心功能是生成动态 Web 内容。' },
+      { id: 2, tag: '运行两要素', q: 'Servlet 正常运行需要的两个要素是？',
+        opts: ['JRE（Java 运行环境）+ Servlet 容器（如 Tomcat）', 'JDK 编译器 + 浏览器', 'main() 方法 + JVM', 'Web 服务器 + 数据库'],
+        ans: 0, tip: 'Servlet 没有 main 方法，由容器创建和调用，不能独立运行。' },
+      { id: 3, tag: '容器职责', q: '下列哪一项【不是】Servlet 容器的职责？',
+        opts: ['编译 Servlet 源代码', '把 HTTP 请求封装为 HttpServletRequest 对象', '根据 URL 和配置文件定位目标 Servlet', '管理 Servlet 生命周期（init / service / destroy）'],
+        ans: 0, tip: '编译是开发阶段的事，容器不负责编译源代码。' },
+      { id: 4, tag: '生命周期', q: 'init() 方法的调用时机是？',
+        opts: ['只在 Servlet 第一次被创建时调用一次', '每次请求都会调用', '每次写响应时调用', '服务器关闭时调用'],
+        ans: 0, tip: '构造方法 → init()（1 次）→ service()（每次请求）→ destroy()（1 次）。' },
+      { id: 5, tag: 'service分发', q: 'service() 方法的核心作用是？',
+        opts: ['根据请求方式（GET/POST 等）自动分发到 doGet()、doPost()', '编译并加载 Servlet 类', '直接生成响应返回，不再往下走', '为每个应用创建 ServletContext'],
+        ans: 0, tip: '开发者通常不重写 service()，而是重写 doGet()/doPost()。' },
+      { id: 6, tag: 'doGet', q: '处理 GET 请求应该重写哪个方法？',
+        opts: ['doGet()', 'doPost()', 'service()', 'destroy()'],
+        ans: 0, tip: 'GET → doGet()；业务逻辑：从 request 取参数，向 response 写结果。' },
+      { id: 7, tag: 'url-pattern', q: 'web.xml 中 <url-pattern> 的作用是？',
+        opts: ['定义 Servlet 的访问路径（URL 映射），如 /now', '建立“Servlet 名—Java 类”的绑定', '配置 Servlet 的初始化参数', '声明 Servlet 的加载顺序'],
+        ans: 0, tip: '<servlet> 绑类，<servlet-mapping> 绑路径，两者靠 Servlet 名关联。' },
+      { id: 8, tag: '注解配置', q: '@WebServlet 注解的正确写法是？',
+        opts: ['@WebServlet(urlPatterns = "/now")', '@WebServlet(urlPatterns = "/now");', '@urlPatterns("/now")', '@WebServlet(path: "/now")'],
+        ans: 0, tip: '注解后面不加分号；注解配置可以替代 web.xml 配置。' },
+      { id: 9, tag: 'destroy时机', q: 'destroy() 方法在什么时候被调用？',
+        opts: ['服务器停止或 Web 应用被卸载时，只调用一次', '每次请求结束时调用', '长时间没有用户访问时调用', '每次 service() 执行完调用'],
+        ans: 0, tip: 'destroy() 用于释放资源，只在关闭/卸载时调一次。' },
+      { id: 10, tag: 'ServletConfig', q: 'ServletConfig 封装的是什么信息？',
+        opts: ['单个 Servlet 自身的配置信息', '整个 Web 应用的全局配置信息', '浏览器发来的请求参数', '当前登录用户的会话数据'],
+        ans: 0, tip: 'Config 属于单个 Servlet；Context 属于整个应用。取参数：config.getInitParameter("参数名")。' },
+      { id: 11, tag: '获取Context', q: '获取 ServletContext 对象的常用方式是？',
+        opts: ['this.getServletContext()', 'new ServletContext()', 'System.getServletContext()', 'response.getServletContext()'],
+        ans: 0, tip: '也可 request.getServletContext()；它由容器创建管理，不能 new。' },
+      { id: 12, tag: 'Context作用域', q: '关于 ServletContext，下列说法正确的是？',
+        opts: ['服务器启动时为每个 Web 应用创建，被应用中所有 Servlet 共享', '每个 Servlet 都有自己的一个 Context', '每次请求都新创建一个 Context', '每个浏览器会话对应一个 Context'],
+        ans: 0, tip: '作用域从大到小：ServletContext（应用）> Session（会话）> request（请求）。' },
+      { id: 13, tag: 'context-param', q: 'web.xml 中 <context-param> 配置的是什么？',
+        opts: ['整个 Web 应用的全局参数（如应用名、邮箱）', '单个 Servlet 的初始化参数', '浏览器的请求参数', '服务器的端口参数'],
+        ans: 0, tip: '<init-param> 写在 <servlet> 内部，属于单个 Servlet；<context-param> 属于全应用。' },
+      { id: 14, tag: 'getParameter', q: 'getParameter("name") 获取的是？',
+        opts: ['浏览器发来的请求参数（URL ? 后面或表单提交的）', '服务器内部 setAttribute() 存入的域数据', '请求头里的信息', 'web.xml 配置的初始化参数'],
+        ans: 0, tip: '一句话：parameter 是“浏览器给的”，attribute 是“代码存的”。' },
+      { id: 15, tag: '同名多值', q: '获取复选框（checkbox）同名多值参数，应该用？',
+        opts: ['getParameterValues()，返回 String 数组', 'getParameter()', 'getAttribute()', 'getHeader()'],
+        ans: 0, tip: '典型场景：复选框多选 → getParameterValues；单值用 getParameter。' },
+      { id: 16, tag: '请求行方法', q: '获取请求方式（GET/POST）应调用？',
+        opts: ['getMethod()', 'getRequestURI()', 'getProtocol()', 'getContextPath()'],
+        ans: 0, tip: 'getMethod=请求方式；getRequestURI=资源名；getProtocol=协议版本；getContextPath=应用路径。' },
+      { id: 17, tag: '中文乱码', q: '解决响应中文乱码的正确做法是？',
+        opts: ['response.setContentType("text/html;charset=UTF-8")，且必须写在 getWriter() 之前', '先 getWriter() 输出，再 setContentType 补设编码', 'request.setContentType("UTF-8")', 'response.setEncoding("GBK")'],
+        ans: 0, tip: '一行代码两件事：设 Writer 编码 + 告诉浏览器类型编码；必须在 getWriter() 之前！' },
+      { id: 18, tag: '转发位置', q: '请求转发发生在哪里？',
+        opts: ['服务器内部，浏览器地址栏不变、无感知', '浏览器端，由浏览器重新发起请求', '数据库服务器上', 'DNS 解析环节'],
+        ans: 0, tip: '转发是服务器行为，只有一次 HTTP 请求-响应。' },
+      { id: 19, tag: '转发共享', q: '转发时，参与转发的多个 Servlet 之间？',
+        opts: ['共享同一个 request 对象和 response 对象', '各自持有不同的 request 对象', '只共享 response，不共享 request', '不共享任何对象'],
+        ans: 0, tip: 'A 用 setAttribute 存、B 用 getAttribute 取，靠的就是同一个 request；转发不能跳到应用外。' },
+      { id: 20, tag: '转发代码', q: '请求转发代码的正确三步是？',
+        opts: ['setAttribute → getRequestDispatcher → forward', 'forward → setAttribute → getRequestDispatcher', 'getRequestDispatcher → sendRedirect → setAttribute', 'setAttribute → sendRedirect → forward'],
+        ans: 0, tip: '存数据 → 拿转发器 → dispatcher.forward(request, response)。' },
+      { id: 21, tag: '重定向本质', q: '请求重定向的本质是？',
+        opts: ['客户端行为：服务器返回新 URL，浏览器重新发请求，共 2 次请求', '服务器内部行为，一共只有 1 次请求', '客户端行为，但只有 1 次请求', '服务器行为，浏览器完全无感知'],
+        ans: 0, tip: '重定向 = 客户端行为、2 次 HTTP 请求、2 组 request/response。' },
+      { id: 22, tag: 'sendRedirect', q: '重定向的正确代码写法是？',
+        opts: ['response.sendRedirect("url")', 'request.sendRedirect("url")', 'response.forward("url")', 'request.dispatch("url")'],
+        ans: 0, tip: 'sendRedirect 是 response 的方法，request 没有这个方法。' },
+      { id: 23, tag: '重定向局限', q: '重定向后，第二次请求取不到第一次 request 里存的数据，原因是？',
+        opts: ['两次请求对应两个不同的 request 对象', '数据存放超过有效期被自动删除', '服务器在两次请求之间重启了', '两次请求编码方式不一致'],
+        ans: 0, tip: '域不共享；但重定向可以跳外部网站（如百度），地址栏会变。' },
+      { id: 24, tag: '转发vs重定向', q: '下列哪一项【不是】转发与重定向的区别？',
+        opts: ['是否同步执行', '请求次数（1 次还是 2 次）', '浏览器地址栏是否改变', 'request 域数据是否共享'],
+        ans: 0, tip: '区别：行为主体 / 请求次数 / 地址栏 / request 域 / 跳转范围 / 代码——“同步异步”不是！' },
+      { id: 25, tag: 'response方法', q: 'setContentType() 方法的作用是？',
+        opts: ['设置响应体的 MIME 类型与字符编码', '设置响应状态码', '发送错误状态码页面', '获取字符输出流'],
+        ans: 0, tip: 'setStatus=状态码；sendError=错误页；getWriter=输出流。' },
+      { id: 26, tag: '取值方法', q: 'getHeader() 获取的是？',
+        opts: ['请求头信息', '浏览器提交的请求参数', '转发共享的域数据', 'web.xml 里的初始化参数'],
+        ans: 0, tip: 'parameter=请求参数 / attribute=域数据 / header=请求头 / initParameter=初始化参数。' },
+      { id: 27, tag: 'URI', q: 'getRequestURI() 返回的内容是？',
+        opts: ['主机和端口之后、“?”之前的部分，如 /appName/demo3', '包含协议、主机、端口的完整 URL', '“?”之后的查询字符串，如 name=Jack', 'Servlet 映射路径 /demo3'],
+        ans: 0, tip: 'URI 不含协议、主机名、端口号，也不含查询字符串。' },
+      { id: 28, tag: 'ContextPath', q: 'getContextPath() 返回的是？',
+        opts: ['请求资源所在的 Web 应用路径，如 /appName', 'Servlet 映射路径，如 /demo3', '完整的请求 URL', '服务器根路径 /'],
+        ans: 0, tip: 'ContextPath=应用路径（/appName）；ServletPath=映射路径（/demo3）。' },
+      { id: 29, tag: 'doPost', q: '表单 <form method="post"> 提交的数据由哪个方法处理？',
+        opts: ['doPost()', 'doGet()', 'service() 直接忽略', 'destroy()'],
+        ans: 0, tip: '地址栏传参/超链接=GET→doGet；表单 method="post"=POST→doPost。' },
+      { id: 30, tag: '继承链', q: 'HttpServlet 的直接父类是？',
+        opts: ['GenericServlet', 'Servlet 接口', 'HttpSession', 'Object'],
+        ans: 0, tip: 'Servlet 接口 → GenericServlet（与协议无关）→ HttpServlet（针对 HTTP 增强）。' },
+      { id: 31, tag: 'Context唯一', q: 'ServletContext 的创建时机与数量是？',
+        opts: ['服务器启动时创建，每个 Web 应用一个，全应用唯一', '每个 Servlet 被访问时各创建一个', '每次请求创建一个', '每个用户会话创建一个'],
+        ans: 0, tip: 'Context 域对象：全应用唯一、所有 Servlet 共享；重启后销毁。' },
+      { id: 32, tag: '时机原因', q: 'setContentType() 必须写在 getWriter() 之前，原因是？',
+        opts: ['getWriter() 获取输出流时编码方式已经确定，之后再设置对已获取的 Writer 无效', '浏览器必须最先收到类型声明才能解析', 'getWriter() 会清空之前的所有设置', '只是编码规范要求，没有技术原因'],
+        ans: 0, tip: 'Writer 一旦拿到，编码就定型了；后设置 → 中文乱码。' },
+      { id: 33, tag: '访问计数', q: '统计“全站所有用户”的总访问次数，计数器应存在哪个域？',
+        opts: ['ServletContext', 'request', 'HttpSession', 'doGet 的局部变量'],
+        ans: 0, tip: '全体共享→Context；单个用户→Session；单次请求→request。重启服务器计数清零。' }
+    ];
+
+    // ===== 变式题：核心题没押中的其余子知识点，这里全部出成题（id 中数字 = 对应核心题号） =====
+    var VARIANTS = [
+      { id: '1v1', tag: 'Servlet本质', q: 'Servlet 的核心功能是？',
+        opts: ['生成动态 Web 内容', '编译 Java 源代码', '在浏览器端执行脚本', '管理数据库事务'],
+        ans: 0, tip: '服务器端 Java 小程序，专门生成动态 Web 内容。' },
+      { id: '2v1', tag: '运行两要素', q: '关于 Servlet 的运行方式，说法正确的是？',
+        opts: ['没有 main 方法，由容器创建和调用，不能独立运行', '自带 main 方法，可直接用 java 命令运行', '在浏览器中运行，无需服务器', '必须连接数据库才能运行'],
+        ans: 0, tip: 'Servlet 无 main；由 Tomcat 等容器驱动整个生命周期。' },
+      { id: '3v1', tag: '容器职责', q: '容器会把 HTTP 请求封装成什么对象传给 Servlet？',
+        opts: ['HttpServletRequest', 'HttpSession', 'ServletContext', 'RequestDispatcher'],
+        ans: 0, tip: '容器同时创建 HttpServletResponse，并按 URL 定位 Servlet、管理生命周期。' },
+      { id: '4v1', tag: '生命周期', q: '每次请求到来都会被调用的方法是？',
+        opts: ['service()', 'init()', '构造方法', 'destroy()'],
+        ans: 0, tip: 'init/destroy 各一次；service() 每次请求都调用。' },
+      { id: '4v2', tag: '生命周期', q: 'Servlet 生命周期的完整顺序是？',
+        opts: ['构造方法 → init() → service() → destroy()', 'init() → 构造方法 → service() → destroy()', '构造方法 → service() → init() → destroy()', 'init() → service() → 构造方法 → destroy()'],
+        ans: 0, tip: '先构造、再初始化，服役期间反复 service，卸载前 destroy。' },
+      { id: '7v1', tag: 'url-pattern', q: 'web.xml 中 <servlet> 标签的作用是？',
+        opts: ['注册 Servlet，建立“Servlet 名—代码类”的绑定', '定义 URL 访问路径', '配置全应用的全局参数', '配置应用的欢迎页面'],
+        ans: 0, tip: '<servlet> 绑类；<servlet-mapping> 里的 <url-pattern> 绑路径。' },
+      { id: '8v1', tag: '注解配置', q: '关于 @WebServlet 注解，说法正确的是？',
+        opts: ['注解配置可以替代 web.xml 配置', '注解必须与 web.xml 同时使用才生效', '注解只能配置类名，不能配置路径', '注解需要写在方法内部'],
+        ans: 0, tip: '注解后不加分号；可完全替代 web.xml 的注册与映射。' },
+      { id: '10v1', tag: 'ServletConfig', q: '获取 web.xml 中 <init-param> 配置的初始化参数，应调用？',
+        opts: ['config.getInitParameter("参数名")', 'config.getAttribute("参数名")', 'config.getParameter("参数名")', 'config.getHeader("参数名")'],
+        ans: 0, tip: 'ServletConfig 在 init(ServletConfig config) 时由服务器传入。' },
+      { id: '11v1', tag: '获取Context', q: '下列也能获取 ServletContext 对象的方式是？',
+        opts: ['request.getServletContext()', 'new ServletContext()', 'response.getWriter()', 'System.getServletContext()'],
+        ans: 0, tip: '三种常用：this.getServletContext() / getServletContext() / request.getServletContext()。' },
+      { id: '12v1', tag: 'Context作用域', q: '三个作用域对象按范围从大到小排列是？',
+        opts: ['ServletContext > HttpSession > request', 'HttpSession > ServletContext > request', 'request > HttpSession > ServletContext', 'ServletContext > request > HttpSession'],
+        ans: 0, tip: '应用 > 会话 > 请求。' },
+      { id: '13v1', tag: 'context-param', q: '<init-param> 应该写在哪里、属于谁？',
+        opts: ['写在 <servlet> 标签内部，属于单个 Servlet', '写在 <context-param> 里，属于全应用', '写在 <servlet-mapping> 里，属于 URL', '写在 class 文件里，属于浏览器'],
+        ans: 0, tip: 'init-param 属于单个 Servlet；context-param 才属于全应用。' },
+      { id: '14v1', tag: 'getParameter', q: 'getAttribute() 获取的是？',
+        opts: ['服务器内部 setAttribute() 存入的域数据', '浏览器提交的请求参数', '请求头信息', 'URL 中的查询字符串'],
+        ans: 0, tip: 'parameter = 浏览器给的；attribute = 代码存的（转发共享用）。' },
+      { id: '16v1', tag: '请求行方法', q: '获取协议及版本号（如 HTTP/1.1）的方法是？',
+        opts: ['getProtocol()', 'getMethod()', 'getURI()', 'getServerName()'],
+        ans: 0, tip: 'getMethod=请求方式；getProtocol=协议版本。' },
+      { id: '16v2', tag: '请求行方法', q: '返回 Servlet 映射路径（如 /demo3）的方法是？',
+        opts: ['getServletPath()', 'getContextPath()', 'getRequestURI()', 'getMethod()'],
+        ans: 0, tip: 'ServletPath=映射路径（/demo3）；ContextPath=应用路径（/appName）。' },
+      { id: '19v1', tag: '转发共享', q: '关于请求转发，说法错误的是？',
+        opts: ['转发可以跳转到本应用之外的 URL（如百度）', '转发过程中共享同一个 request 对象', '转发后浏览器地址栏不变', '转发的目标可以是本应用内的另一个 Servlet'],
+        ans: 0, tip: '转发只能在本应用内；跳外部网站要用重定向。' },
+      { id: '20v1', tag: '转发代码', q: '获取转发器（RequestDispatcher）应调用？',
+        opts: ['request.getRequestDispatcher("/resp")', 'response.getRequestDispatcher("/resp")', 'request.sendDispatcher("/resp")', 'context.getDispatcher("/resp")'],
+        ans: 0, tip: '用 request 拿转发器，再 dispatcher.forward(request, response)。' },
+      { id: '23v1', tag: '重定向局限', q: '与转发相比，重定向的优势是？',
+        opts: ['可以跳转到任意外部 URL（如百度）', '共享同一个 request 域', '只有一次请求，速度更快', '浏览器地址栏保持不变'],
+        ans: 0, tip: '重定向可跳外站、地址栏变；代价是 2 次请求、域不共享。' },
+      { id: '24v1', tag: '转发vs重定向', q: '请求转发之后，浏览器地址栏会？',
+        opts: ['保持不变', '变成目标资源的 URL', '变为应用根路径', '被清空'],
+        ans: 0, tip: '转发 1 次请求、浏览器无感知、地址栏不变；重定向才变。' },
+      { id: '24v2', tag: '转发vs重定向', q: '从跳转范围看，正确的是？',
+        opts: ['转发仅限本应用内，重定向可到任意 URL', '转发可到任意 URL，重定向仅限本应用', '两者都只能在本应用内跳转', '两者都能跳转到任意 URL'],
+        ans: 0, tip: '范围：转发=应用内；重定向=任意 URL（含外站）。' },
+      { id: '25v1', tag: 'response方法', q: '设置响应状态码的方法是？',
+        opts: ['setStatus(int sc)', 'setStatusText(String s)', 'sendRedirect(int sc)', 'setHeader(int sc)'],
+        ans: 0, tip: 'setStatus=状态码；sendError=错误页；getWriter=输出流。' },
+      { id: '25v2', tag: 'response方法', q: '发送错误状态码并显示错误页面的方法是？',
+        opts: ['sendError(int sc)', 'setStatus(int sc)', 'sendRedirect(int sc)', 'getError(int sc)'],
+        ans: 0, tip: 'sendError(404) 会向客户端发送错误状态码页面。' },
+      { id: '26v1', tag: '取值方法', q: '获取 web.xml/注解中配置的 Servlet 初始化参数用？',
+        opts: ['getInitParameter()', 'getHeader()', 'getParameter()', 'getAttribute()'],
+        ans: 0, tip: 'initParameter=初始化参数；parameter=请求参数；attribute=域数据。' },
+      { id: '27v1', tag: 'URI', q: '请求 http://localhost:8080/appName/demo3?name=Jack 的 getRequestURI() 返回？',
+        opts: ['/appName/demo3', 'http://localhost:8080/appName/demo3', 'name=Jack', '/demo3'],
+        ans: 0, tip: 'URI = 主机端口之后、? 之前；不含协议/主机/端口/查询串。' },
+      { id: '28v1', tag: 'ContextPath', q: '请求 http://localhost:8080/appName/demo3?name=Jack 的 getServletPath() 返回？',
+        opts: ['/demo3', '/appName', '/appName/demo3', 'name=Jack'],
+        ans: 0, tip: 'ServletPath=映射路径（/demo3）；ContextPath=应用路径（/appName）。' },
+      { id: '30v1', tag: '继承链', q: '与协议无关、service() 仍是抽象方法的类是？',
+        opts: ['GenericServlet', 'HttpServlet', 'ServletConfig', 'ServletContext'],
+        ans: 0, tip: 'GenericServlet 与协议无关；HttpServlet 针对协议增强。' },
+      { id: '30v2', tag: '继承链', q: '关于 Servlet 接口，说法正确的是？',
+        opts: ['定义了 5 个抽象方法，其中 init/service/destroy 与生命周期相关', '只定义了 service() 一个方法', '可以直接 new 出来使用', 'HttpServlet 直接实现 Servlet 接口，没有中间层'],
+        ans: 0, tip: 'Servlet 接口 → GenericServlet → HttpServlet，逐层实现/继承。' },
+      { id: '33v1', tag: '访问计数', q: '重启服务器后，存在 ServletContext 里的访问计数会？',
+        opts: ['清零（Context 随应用销毁重建）', '继续累加保持', '自动写入数据库', '变为 -1'],
+        ans: 0, tip: 'ServletContext 随应用创建/销毁，重启即清零。' },
+      { id: '33v2', tag: '访问计数', q: '统计“单个用户”多次请求之间的数据（如购物车），应存在？',
+        opts: ['HttpSession', 'ServletContext', 'request', 'pageContext'],
+        ans: 0, tip: '口诀：全体共享用 Context，单个用户用 Session，单次请求用 request。' }
+    ];
+    // ===== 计组期末 · 真题单选题材库（2022 后四套 + 17-18 / 19级 卷去重 59 题）=====
+    var JZU_BANK = [
+      { id: "j1", tag: "系统概念", q: "计算机硬件能直接识别和执行的语言是？",
+        opts: ["机器语言", "汇编语言", "高级语言", "符号语言"],
+        ans: 0, tip: "硬件只认二进制；汇编/高级语言都要翻译。（17-18A·19级B·22-23A/B 三年重复）" },
+      { id: "j2", tag: "机器数与码制", q: "在机器数中，______的零的表示形式是唯一的。",
+        opts: ["原码", "补码", "反码", "ASCII码"],
+        ans: 1, tip: "原码/反码的±0各有两种表示；补码0唯一且多一个最小负数。（8套卷最高频，7/8套考过）" },
+      { id: "j3", tag: "机器数与码制", q: "机器字长为5，定点小数 −0.1010 的补码是？",
+        opts: ["0.1010", "1.1010", "1.0101", "1.0110"],
+        ans: 3, tip: "负数补码=反码+1：1.0101+0.0001=1.0110。（22-23A/B 单选3）" },
+      { id: "j4", tag: "定点运算", q: "变形补码 X=00.1011，Y=00.1100，X+Y 产生了？",
+        opts: ["负溢出", "正溢出", "无溢出", "下溢出"],
+        ans: 1, tip: "00.1011+00.1100=01.0111，双符号位01=正溢出；验算0.6875+0.75=1.4375>1。（22-23A/B 单选4）" },
+      { id: "j5", tag: "定点运算", q: "定点运算器中无论单/双符号位，必须有______，一般用______实现。",
+        opts: ["译码电路，与非门", "编码电路，或非门", "溢出判断电路，异或门", "移位电路，与或非门"],
+        ans: 2, tip: "溢出=进位入符号位 ⊕ 进位出符号位，硬件正好是异或门。（17-18A、22-23A/B 重复考）" },
+      { id: "j6", tag: "字符编码", q: "在小型或微型计算机里，普遍采用的字符编码是？",
+        opts: ["BCD码", "16进制", "格雷码", "ASCII码"],
+        ans: 3, tip: "ASCII 是字符编码标准；BCD 是对十进制数字的编码。（17-18A、22-23A/B 重复考）" },
+      { id: "j7", tag: "存储器", q: "单片机的系统程序不允许用户在执行时改变，应选用______芯片。",
+        opts: ["SRAM", "闪速存储器", "Cache", "ROM"],
+        ans: 3, tip: "固化系统程序用ROM：只读、掉电不丢。（22-23A/B 单选7）" },
+      { id: "j8", tag: "CPU与控制器", q: "标志寄存器 FR 的主要作用是？",
+        opts: ["保存将要访问的指令地址", "记录程序执行状态，作为CU输入，用于条件转移控制", "保存正在执行的指令", "保存CPU与主存交换的数据"],
+        ans: 1, tip: "FR/PSW存状态标志供条件转移判断；PC存下条指令地址、IR存当前指令、MDR缓冲数据。（22-23A/B 单选8）" },
+      { id: "j9", tag: "指令系统", q: "寄存器间接寻址方式中，操作数处在______。",
+        opts: ["通用寄存器", "段寄存器", "主存储器", "程序计数器"],
+        ans: 2, tip: "“间接”=寄存器里放的是地址，操作数本体在主存。（17-18A、22-23A/B 重复考）" },
+      { id: "j10", tag: "CPU与控制器", q: "Intel 80X86 的 4 个 16 位变址（含基址）寄存器是？",
+        opts: ["AX,BX,CX,DX", "BX,DX,BP,SS", "BP,BX,DI,SI", "BX,BP,DS,SI"],
+        ans: 2, tip: "BX/BP为基址、SI/DI为变址；含SS/DS的选项必错（它们是段寄存器）。（19级A、22-23A/B 重复考）" },
+      { id: "j11", tag: "CPU与控制器", q: "以下哪个不属于 80X86 的段寄存器？",
+        opts: ["CS", "DS", "PS", "SS"],
+        ans: 2, tip: "段寄存器只有 CS/DS/SS/ES 四个，PS 不存在。（22-23A/B 单选11）" },
+      { id: "j12", tag: "指令系统", q: "以下哪个逻辑地址对应的物理地址与其他三个不同？",
+        opts: ["01B5:165C", "01F5:125C", "021A:100C", "020F:150C"],
+        ans: 3, tip: "PA=段×10H+偏移：前三个都是031ACH，D=020F0H+150CH=035FCH。（22-23A/B 单选12）" },
+      { id: "j13", tag: "指令系统", q: "单地址指令完成两数运算，另一个操作数通常采用______。",
+        opts: ["立即数寻址", "寄存器间址寻址", "隐含寻址", "直接寻址"],
+        ans: 2, tip: "另一操作数事先约定在固定位置（如乘法默认AX），不写在指令里=隐含。（19级A/B、22-23A/B 重复考）" },
+      { id: "j14", tag: "CPU与控制器", q: "指令周期是指______。",
+        opts: ["取一条指令的时间", "执行一条指令的时间", "取指加上执行一条指令的时间", "机器工作的时钟周期"],
+        ans: 2, tip: "指令周期=取出并执行完一条指令的全部时间；时钟周期是最小时间单位。（19级A/B、22-23A/B 重复考）" },
+      { id: "j15", tag: "汇编基础", q: "定义“字类型”变量的伪指令助记符是？",
+        opts: ["DB", "DW", "DQ", "DD"],
+        ans: 1, tip: "B=Byte(1字节) W=Word(2字节) D=Double(4字节) Q=Quad(8字节)。（22-23A/B 单选15）" },
+      { id: "j16", tag: "汇编基础", q: "以下哪条指令的寻址方式为基址变址寻址？",
+        opts: ["MOV AX,BX", "MOV AX,12H[BX][DI]", "MOV AX,[BX]", "MOV AX,DS:[1200H]"],
+        ans: 1, tip: "位移量+基址BX+变址DI=基址变址；[BX]单独是寄存器间接；[1200H]是直接。（22-23A/B 单选16）" },
+      { id: "j17", tag: "存储器", q: "SRAM 芯片容量 64K×16 位，其地址线和数据线数目为？",
+        opts: ["64，16", "64，32", "32，16", "16，16"],
+        ans: 3, tip: "64K=2¹⁶→16根地址线；16位→16根数据线。（19级A、22-23A/B 重复考）" },
+      { id: "j18", tag: "存储器", q: "Cache 与主存的地址映射中，哪种方式查询速度最快？",
+        opts: ["直接相联映射", "全相联映射", "组相联映射", "以上都正确"],
+        ans: 0, tip: "直接映射=对号入座，按行号直接定位无需比较，最快；全相联要逐个比较标记最慢。（22-23A/B 单选18）" },
+      { id: "j19", tag: "CPU与控制器", q: "80X86 中保存“CPU 将要访问的指令”的主存地址的是？",
+        opts: ["CS:IP", "SS:SP", "DS:IP", "CS:SP"],
+        ans: 0, tip: "CS存代码段址、IP存段内偏移；SS:SP指向栈顶。（22-23A/B 单选19）" },
+      { id: "j20", tag: "总线与IO", q: "主机与 I/O 系统的信息传送方式中，传输效率最低的是？",
+        opts: ["程序查询方式", "程序中断方式", "DMA方式", "通道方式"],
+        ans: 0, tip: "查询方式CPU原地死等；效率排序：查询＜中断＜DMA＜通道。（22-23A/B 单选20）" },
+      { id: "j21", tag: "机器数与码制", q: "针对8位二进制数，下列说法正确的是？",
+        opts: ["−127的补码为10000000", "−127的反码等于0的移码", "+1的移码等于−127的反码", "0的补码等于−1的反码"],
+        ans: 1, tip: "−127反码=10000000，0的移码=2⁷+0=10000000，相等。A错：−127补码=10000001。（23-24A/B 重复考）" },
+      { id: "j22", tag: "机器数与码制", q: "8位补码整数由3个“1”和5个“0”组成，最小值为？",
+        opts: ["−127", "−32", "−125", "−3"],
+        ans: 1, tip: "符号位必为1；负数补码真值=−128+数值位，数值位最大11110000₂=96→−32。（23-24A/B 重复考）" },
+      { id: "j23", tag: "机器数与码制", q: "计算机系统中采用补码运算的目的是为了______。",
+        opts: ["与手工运算方式保持一致", "提高运算速度", "简化计算机的设计", "提高运算的精度"],
+        ans: 2, tip: "补码把减法变加法、符号位一同运算，一套加法器即可。（23-24A/B 重复考）" },
+      { id: "j24", tag: "系统概念", q: "完整的计算机系统应包括______。",
+        opts: ["运算器、存储器和控制器", "外部设备和主机", "主机和实用程序", "配套的硬件设备和软件系统"],
+        ans: 3, tip: "硬件+软件缺一不可。（19级B、23-24A/B 重复考）" },
+      { id: "j25", tag: "系统概念", q: "计算机系统中的存储器系统是指______。",
+        opts: ["RAM存储器", "ROM存储器", "主存储器", "主存储器和外存储器"],
+        ans: 3, tip: "存储器系统=主存+外存的整体层次；RAM/ROM只是主存的类型。（19级A、23-24A/B 重复考）" },
+      { id: "j26", tag: "系统概念", q: "冯·诺依曼机工作方式的基本特点是______。",
+        opts: ["多指令流单数据流", "存储器按内部选择地址", "堆栈操作", "按地址访问并顺序执行指令"],
+        ans: 3, tip: "存储程序+程序控制：指令顺序存放、按地址顺序执行。（23-24A/B 重复考）" },
+      { id: "j27", tag: "系统概念", q: "关于计算机系统的层次结构，下列说法中不正确的是______。",
+        opts: ["软件实现的操作也可以由硬件实现", "固件功能似软件、形态似硬件", "微程序级属于硬件级，其他四级都是软件级", "面向高级语言的机器是完全可以实现的"],
+        ans: 2, tip: "微程序级和传统机器级都是硬件级，“其他四级都是软件级”漏了机器级。（23-24A/B 重复考）" },
+      { id: "j28", tag: "数制转换", q: "在下列数中最小的数为______。",
+        opts: ["(101001)₂", "(52)₈", "(101001)BCD", "(233)₁₆"],
+        ans: 2, tip: "BCD按4位一组读成十进制：0010 1001→29；整体是41/42/563。（17-18A、23-24A/B 重复考）" },
+      { id: "j29", tag: "数制转换", q: "在下列数中最大的数为______。",
+        opts: ["(10010101)₂", "(227)₈", "(143)₅", "(96)₁₆"],
+        ans: 1, tip: "149/151/48/150——(96)₁₆=150只比151小1，必须精算。（23-24A/B 重复考）" },
+      { id: "j30", tag: "定点运算", q: "下列有关运算器的描述中，正确的是______。",
+        opts: ["只做算术运算，不做逻辑运算", "只做加法", "能暂时存放运算结果", "既做算术运算，又做逻辑运算"],
+        ans: 2, tip: "运算器=ALU+ACC等寄存器，ACC能暂存中间结果。（17-18A 单选1）" },
+      { id: "j31", tag: "机器数与码制", q: "字长32位定点小数，符号位1位、尾数31位，可表示的最大正小数为？",
+        opts: ["+(2³¹−1)", "−(1−2⁻³²)", "+(1−2⁻³¹)", "−(1−2⁻³¹)"],
+        ans: 2, tip: "最大正小数=0.111…1（31个1）=1−2⁻³¹。（17-18A 单选4）" },
+      { id: "j32", tag: "CPU与控制器", q: "在CPU中跟踪指令后继地址的寄存器是______。",
+        opts: ["MAR", "PC", "IR", "PSW"],
+        ans: 1, tip: "PC程序计数器自动形成下一条指令地址；MAR是访存地址寄存器。（17-18A 单选10）" },
+      { id: "j33", tag: "系统概念", q: "目前我们所说的个人台式商用机属于______。",
+        opts: ["巨型机", "中型机", "小型机", "微型机"],
+        ans: 3, tip: "按规模分：巨型/大型/小型/微型。（17-18B 单选1）" },
+      { id: "j34", tag: "总线与IO", q: "输入、输出设备以及辅助存储器一般统称为______。",
+        opts: ["I/O系统", "外围设备", "外存储器", "执行部件"],
+        ans: 1, tip: "外设=除CPU和主存之外的设备。（17-18B 单选2）" },
+      { id: "j35", tag: "数制转换", q: "下列数中最大的是______。",
+        opts: ["(10011001)₂", "(227)₈", "(98)₁₆", "(152)₁₀"],
+        ans: 0, tip: "153/151/152/152——二进制数最大。（17-18B 单选3）" },
+      { id: "j36", tag: "存储器", q: "EPROM 是指______。",
+        opts: ["读写存储器", "只读存储器", "可编程的只读存储器", "光擦除可编程的只读存储器"],
+        ans: 3, tip: "EPROM紫外线擦除、EEPROM电擦除。（17-18B 单选4）" },
+      { id: "j37", tag: "机器数与码制", q: "定点8位字长、补码表示整数，可表示的范围是______。",
+        opts: ["−127～+127", "−2⁻¹²⁷～+2¹²⁷", "2⁻¹²⁸～+2¹²⁷", "−128～+127"],
+        ans: 3, tip: "补码比原码多一个最小负数−2⁷=−128。（17-18B 单选6）" },
+      { id: "j38", tag: "浮点数", q: "长度相同、前者阶码长尾数短、后者阶码短尾数长，则两者______。",
+        opts: ["范围和精度相同", "前者可表示的范围大但精度低", "后者可表示的范围大且精度高", "前者可表示的范围大且精度高"],
+        ans: 1, tip: "阶码位数决定表示范围，尾数位数决定精度。（17-18B 单选7）" },
+      { id: "j39", tag: "定点运算", q: "关于溢出，下列说法正确的是______。",
+        opts: ["采用变形补码进行加减运算可以避免溢出", "只有定点数运算才可能溢出", "只有带符号数的运算才有可能溢出", "只有两个正数相加才可能溢出"],
+        ans: 2, tip: "溢出是带符号数结果超出表示范围的概念；变形补码只能检测不能避免。（17-18B 单选8）" },
+      { id: "j40", tag: "存储器", q: "某RAM容量为 32K×16 位，则______。",
+        opts: ["地址线16根，数据线32根", "地址线32根，数据线16根", "地址线15根，数据线16根", "地址线19根，数据线19根"],
+        ans: 2, tip: "32K=2¹⁵→15根地址线。（17-18B 单选9）" },
+      { id: "j41", tag: "存储器", q: "计算机内存储器可以采用______。",
+        opts: ["RAM和ROM", "只有ROM", "只有RAM", "RAM和SRAM"],
+        ans: 0, tip: "主存=RAM（主体）+ROM（固化BIOS等）。（17-18B 单选6·第二组）" },
+      { id: "j42", tag: "总线与IO", q: "为了便于实现多级中断，保存现场信息最有效的方法是采用______。",
+        opts: ["通用寄存器", "堆栈", "存储器", "外存"],
+        ans: 1, tip: "堆栈后进先出，天然支持多级嵌套保护/恢复现场。（17-18B 单选7·第二组）" },
+      { id: "j43", tag: "总线与IO", q: "计算机系统的输入输出接口是______之间的交接界面。",
+        opts: ["CPU与存储器", "存储器与外围设备", "主机与外围设备", "CPU与系统总线"],
+        ans: 2, tip: "I/O接口在主机（系统总线）与外设之间。（17-18B 单选8·第二组）" },
+      { id: "j44", tag: "总线与IO", q: "中断向量是______。",
+        opts: ["子程序入口地址", "中断服务程序入口地址的指示器", "中断返回地址", "中断服务程序入口地址"],
+        ans: 3, tip: "注意区分：中断向量=入口地址本身；“中断向量地址”=存放它的单元地址（见另一题）。（17-18B 单选9·第二组）" },
+      { id: "j45", tag: "存储器", q: "下列外存中，属于顺序存取存储器的是______。",
+        opts: ["软盘", "硬盘", "磁带", "光盘"],
+        ans: 2, tip: "磁带必须顺序走带；磁盘/光盘可直接存取。（17-18B 单选10·第二组）" },
+      { id: "j46", tag: "指令系统", q: "使用寄存器的内容作为有效地址的寻址方式称为______寻址。",
+        opts: ["寄存器", "寄存器间接", "间接", "直接"],
+        ans: 1, tip: "“寄存器内容当地址用”就是寄存器间接寻址。（19级A 单选4、19级B 单选3）" },
+      { id: "j47", tag: "总线与IO", q: "中断向量地址是______。",
+        opts: ["中断返回地址", "中断服务程序入口地址的指示器", "中断服务程序入口地址", "子程序入口地址"],
+        ans: 1, tip: "向量地址=存放入口地址的单元地址，即“指示器”。（19级A 单选5；对比“中断向量=入口地址”）" },
+      { id: "j48", tag: "指令系统", q: "程序控制类指令的功能是______。",
+        opts: ["进行算术运算和逻辑运算", "进行主存与CPU之间的数据传送", "进行CPU和I/O设备之间的数据传送", "改变程序执行顺序"],
+        ans: 3, tip: "转移、转子、返回、中断等指令。（19级A/B 单选9）" },
+      { id: "j49", tag: "数制转换", q: "下列无符号整数中最大的是______。",
+        opts: ["(11011111)₂", "(345)₈", "(250)₁₀", "(0EF)₁₆"],
+        ans: 3, tip: "223/229/250/239→0EFH最大。（19级A 单选10）" },
+      { id: "j50", tag: "定点运算", q: "运算器包含多个部件，其中最核心的部件是______。",
+        opts: ["加法器", "算术逻辑运算单元", "多路开关", "寄存器组"],
+        ans: 1, tip: "ALU=算术逻辑运算单元，运算器的核心。（19级A 单选11）" },
+      { id: "j51", tag: "定点运算", q: "在定点数运算中产生溢出的原因是______。",
+        opts: ["参加运算的操作数超出了表示范围", "运算过程中最高位产生了进位或借位", "运算的结果超出了机器的表示范围", "寄存器位数太少必须舍弃最低有效位"],
+        ans: 2, tip: "关键字是“结果”——操作数超范围不必然溢出。（19级A/B 单选12）" },
+      { id: "j52", tag: "存储器", q: "下列因素中与 Cache 命中率无关的是______。",
+        opts: ["主存的存取时间", "Cache行的大小", "Cache的容量", "Cache的映像方式"],
+        ans: 0, tip: "命中率与容量、块大小、映射方式、程序局部性有关；与主存速度无关。（19级A/B 单选13）" },
+      { id: "j53", tag: "存储器", q: "采用虚拟存储器的目的是______。",
+        opts: ["提高主存的存取速度", "扩大存储容量，且能自动管理和调度", "提高访问外存的速度", "扩大外存储器的容量"],
+        ans: 1, tip: "虚存=主存+外存层次，由OS+硬件自动调度，对程序员透明。（19级A/B 单选14）" },
+      { id: "j54", tag: "CPU与控制器", q: "下列部件中，不属于控制器的是______。",
+        opts: ["指令寄存器", "操作控制器", "程序计数器", "状态条件寄存器"],
+        ans: 3, tip: "PSW属运算器；控制器=PC、IR、译码器、操作控制器等。（19级A 单选18）" },
+      { id: "j55", tag: "总线与IO", q: "微型机的外围设备通过______与主板的系统总线相连。",
+        opts: ["适配器", "设备控制器", "数模转换器", "寄存器"],
+        ans: 0, tip: "适配器（接口卡）。（19级A 单选20）" },
+      { id: "j56", tag: "指令系统", q: "关于寻址方式与存储器，下列说法中不正确的是______。",
+        opts: ["变址寻址的有效数据存放在主存中", "栈是先进后出的随机存储器", "内存中指令的寻址和数据的寻址是交替进行的", "ROM是不可以随机访问的"],
+        ans: 3, tip: "ROM可以随机读出，只是不能随意写入。（19级B 单选1）" },
+      { id: "j57", tag: "存储器", q: "SRAM 芯片容量 64K×32 位，地址线和数据线数目为？",
+        opts: ["64，16", "64，32", "32，16", "16，32"],
+        ans: 3, tip: "64K=2¹⁶→16根地址线；32位→32根数据线。（19级B 单选2）" },
+      { id: "j58", tag: "系统概念", q: "至今计算机仍采用二进制表示各类信息，理由是______。",
+        opts: ["节约元器件", "运算速度快", "物理器件的性能要求", "信息的表示格式易于统一"],
+        ans: 2, tip: "两个稳定状态的物理器件最容易实现、最可靠。（19级B 单选5）" },
+      { id: "j59", tag: "总线与IO", q: "CPU一旦响应中断则立即关闭______标志，防止被其他中断干扰。",
+        opts: ["中断屏蔽", "中断允许", "中断请求", "中断优先级"],
+        ans: 1, tip: "“关中断”=清中断允许标志，保证响应过程不被打断。（19级B 单选15）" }
+    ];
+
+
+    var JZU_VARIANTS = [
+      { id: "jv1", tag: "定点运算", q: "已知 X＝−0.0101，Y＝+0.1001，用变形补码求 X+Y 的结果是？",
+        opts: ["00.0100，无溢出", "01.1100，正溢出", "11.0100，负溢出", "00.1100，无溢出"],
+        ans: 0, tip: "11.1011+00.1001=(1)00.0100，丢进位得00.0100；验算−0.3125+0.5625=+0.25。（变式）" },
+      { id: "jv2", tag: "定点运算", q: "已知 X＝0.1100，Y＝0.1000，用变形补码求 X+Y，结论是？",
+        opts: ["00.0100，无溢出", "01.0100，正溢出", "10.0100，负溢出", "00.1100，无溢出"],
+        ans: 1, tip: "00.1100+00.1000=01.0100，双符号位01=正溢出；0.75+0.5=1.25>1。（变式）" },
+      { id: "jv3", tag: "定点运算", q: "已知 X=10101010，Y=01010101，求 X⊕Y。",
+        opts: ["00000000", "11111111", "10101010", "01010101"],
+        ans: 1, tip: "每一位都相异，同0异1→全1。（变式）" },
+      { id: "jv4", tag: "定点运算", q: "已知 X=11001100，Y=10101010，求 X⊕Y。",
+        opts: ["01100110", "11111111", "10101010", "00000000"],
+        ans: 0, tip: "逐位“同0异1”得01100110。（变式）" },
+      { id: "jv5", tag: "机器数与码制", q: "8位补码整数由5个“1”和3个“0”组成，最小值为？",
+        opts: ["−8", "−16", "−120", "−15"],
+        ans: 0, tip: "符号位1+数值位4个1放最高位1111000₂=120→−128+120=−8，即11111000。（变式）" },
+      { id: "jv6", tag: "机器数与码制", q: "8位反码整数可表示的范围是？",
+        opts: ["−128～+127", "−127～+127", "−128～+128", "−127～+128"],
+        ans: 1, tip: "反码±0各占一种表示，比补码少一个最小负数。（变式）" },
+      { id: "jv7", tag: "数制转换", q: "下列数中最小的是______。",
+        opts: ["(11000)₂", "(30)₈", "(11000)BCD", "(18)₁₆"],
+        ans: 2, tip: "24/24/18/24——BCD按4位一组读成十进制：0001 1000→18。（变式）" },
+      { id: "jv8", tag: "数制转换", q: "下列无符号数中最大的是______。",
+        opts: ["(11100)₂", "(34)₈", "(24)₁₀", "(1D)₁₆"],
+        ans: 3, tip: "28/28/24/29——1DH=29最大。（变式）" },
+      { id: "jv9", tag: "机器数与码制", q: "−1 的 8 位补码是？",
+        opts: ["11111111", "11111110", "10000001", "01111111"],
+        ans: 0, tip: "−1补码=反码+1：11111110+1=11111111；10000001是原码，01111111是移码。（变式）" },
+      { id: "jv10", tag: "存储器", q: "SRAM 芯片容量 128K×8 位，地址线和数据线数目为？",
+        opts: ["17，8", "128，8", "14，8", "7，8"],
+        ans: 0, tip: "128K=2¹⁷→17根地址线；8位→8根数据线。（变式）" },
+      { id: "jv11", tag: "CPU与控制器", q: "8086 中堆栈指针 SP 默认配合的段寄存器是？",
+        opts: ["SS", "DS", "CS", "ES"],
+        ans: 0, tip: "SS:SP 指向栈顶；BP 寻址也默认 SS。（变式）" },
+      { id: "jv12", tag: "指令系统", q: "MOV AX,[BP+SI] 的源操作数默认使用的段寄存器是？",
+        opts: ["SS", "DS", "CS", "ES"],
+        ans: 0, tip: "只要寻址中出现 BP，默认段就从 DS 换成 SS——真题最高频陷阱。（变式）" }
+    ];
+
+    var ALLQ = {};
+    BANK.forEach(function (b) { ALLQ[b.id] = b; });
+    VARIANTS.forEach(function (v) { ALLQ[v.id] = v; });
+    JZU_BANK.forEach(function (b) { ALLQ[b.id] = b; });
+    JZU_VARIANTS.forEach(function (v) { ALLQ[v.id] = v; });
+
+    // ===== 科目配置 =====
+    var SUBJECTS = {
+      servlet: {
+        name: 'Servlet 第3章', sub: '核心 33 题 · 学习通小测',
+        bank: BANK, variants: VARIANTS,
+        examAll: true, examCount: 0, examMs: 8 * 60 * 1000,
+        perQSec: 15, quickCount: 15,
+        examMain: '全真模拟 · 33 题 / 8 分钟', examSub: '到时强制收卷，还原真实考场压力',
+        quickMain: '单题计时快刷 · 15 题 × 15 秒', quickSub: '碎片时间来一轮，保持手感',
+        practiceMain: '练习模式 · 核心 33 题', practiceSub: '不限时，答完立即看解析与记忆点',
+        variantMain: '变式专练 · 61 题全覆盖', variantSub: '每个考点的子知识点全部兜底',
+        subtitle: '核心 33 题（对准考题题号）+ 28 道变式题（覆盖其余子知识点）· 每次乱序'
+      },
+      jzu: {
+        name: '计组期末 · 真题单选', sub: '8 套真题去重 59 题 + 12 变式',
+        bank: JZU_BANK, variants: JZU_VARIANTS,
+        examAll: false, examCount: 20, examMs: 12 * 60 * 1000,
+        perQSec: 60, quickCount: 15,
+        examMain: '全真模拟 · 抽 20 题 / 12 分钟', examSub: '按真题节奏（单选 20 题），到时强制收卷',
+        quickMain: '单题计时快刷 · 15 题 × 60 秒', quickSub: '计算题留足 60 秒，练熟再提速',
+        practiceMain: '练习模式 · 真题 59 题', practiceSub: '不限时，答完看解析与出处',
+        variantMain: '变式专练 · 71 题全覆盖', variantSub: '补码/异或/数制换数重练，防背答案',
+        subtitle: '2022 后四套全考 + 17-18 / 19级 卷去重共 59 题 + 12 道换数变式 · 每次乱序'
+      }
+    };
+    var curSub = 'servlet';
+    function curCfg() { return SUBJECTS[curSub]; }
+
+    // ===== 状态 =====
+    var run = null; // {queue, idx, mode, correct, wrongIds, wrongDetail, answeredMs, cur:{q, order, qStart, answered, timerId, lockAdvance}}
+
+    var $ = function (id) { return document.getElementById(id); };
+    var screens = { start: $('sq-start'), quiz: $('sq-quiz'), result: $('sq-result'), stats: $('sq-stats'), review: $('sq-review') };
+    function show(name) {
+      Object.keys(screens).forEach(function (k) { screens[k].hidden = (k !== name); });
+    }
+    function shuffle(arr) {
+      var a = arr.slice();
+      for (var i = a.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = a[i]; a[i] = a[j]; a[j] = t;
+      }
+      return a;
+    }
+    function esc(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // ===== 持久化错题本（会话内恢复） =====
+    function loadState() {
+      try {
+        var st = window.zcode && window.zcode.widgetState;
+        var pc = st && st.privateContent;
+        if (pc) {
+          var ids = Array.isArray(pc.wrongIds) ? pc.wrongIds.filter(function (id) {
+            return Object.prototype.hasOwnProperty.call(ALLQ, id);
+          }) : [];
+          return { wrongIds: ids, stats: (pc.stats && typeof pc.stats === 'object') ? pc.stats : {} };
+        }
+      } catch (e) {}
+      return { wrongIds: [], stats: {} };
+    }
+    function loadSaved() { return loadState().wrongIds; }
+    var STATS = loadState().stats;
+    function recordStat(qid, right) {
+      var s = STATS[qid];
+      if (!s) { s = STATS[qid] = [0, 0]; }
+      s[0]++;
+      if (right) s[1]++;
+    }
+    function saveState() {
+      try {
+        if (window.zcode && window.zcode.setWidgetState) {
+          var ids = (run && run.wrongAllTime) ? run.wrongAllTime : loadSaved();
+          window.zcode.setWidgetState({ privateContent: { wrongIds: ids, stats: STATS } }).catch(function () {});
+        }
+      } catch (e) {}
+    }
+    document.addEventListener('zcode:set_globals', function (ev) {
+      if (ev.detail && ev.detail.globals && ev.detail.globals.widgetState) {
+        renderStartButtons();
+      }
+    });
+
+    // ===== 开始页 =====
+    function renderStartButtons() {
+      var saved = loadSaved();
+      var btn = $('sq-btn-wrong');
+      if (saved.length > 0) {
+        btn.hidden = false;
+        btn.textContent = '错题歼灭（' + saved.length + ' 题 · 连刷到清零）';
+      } else {
+        btn.hidden = true;
+      }
+    }
+    var TOTAL_MS = 8 * 60 * 1000; // 全真模式总时长（开始一局时按科目刷新）
+    function startRun(mode, list) {
+      run = {
+        mode: mode, // 'full' 全真总计时 | 'exam' 单题计时 | 'practice' 练习
+        base: list,
+        queue: shuffle(list),
+        idx: 0,
+        correct: 0,
+        wrongIds: [],
+        wrongDetail: [],
+        answeredMs: 0,
+        answeredCount: 0,
+        startAt: Date.now(),
+        totalTimerId: null,
+        done: false
+      };
+      var cfg = curCfg();
+      LIMIT = cfg.perQSec;
+      TOTAL_MS = cfg.examMs;
+      show('quiz');
+      renderQuestion();
+      if (mode === 'full') startTotalTimer();
+    }
+    function renderSubject() {
+      var box = $('sq-subjects'); box.innerHTML = '';
+      Object.keys(SUBJECTS).forEach(function (k) {
+        var s = SUBJECTS[k];
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'btn' + (k === curSub ? ' active' : '');
+        b.innerHTML = '<span>' + esc(s.name) + '</span><span class="sq-sub-name-sub">' + esc(s.sub) + '</span>';
+        b.addEventListener('click', function () { if (curSub !== k) { curSub = k; renderSubject(); } });
+        box.appendChild(b);
+      });
+      var c = curCfg();
+      $('sq-h2').textContent = c.name + ' · 刷题模拟';
+      $('sq-subtitle-line').textContent = c.subtitle;
+      $('sq-exam-main').textContent = c.examMain; $('sq-exam-sub').textContent = c.examSub;
+      $('sq-quick-main').textContent = c.quickMain; $('sq-quick-sub').textContent = c.quickSub;
+      $('sq-practice-main').textContent = c.practiceMain; $('sq-practice-sub').textContent = c.practiceSub;
+      $('sq-variant-main').textContent = c.variantMain; $('sq-variant-sub').textContent = c.variantSub;
+    }
+    $('sq-btn-exam').addEventListener('click', function () { var c = curCfg(); startRun('full', c.examAll ? c.bank : shuffle(c.bank).slice(0, c.examCount)); });
+    $('sq-btn-quick').addEventListener('click', function () { var c = curCfg(); startRun('exam', shuffle(c.bank).slice(0, c.quickCount)); });
+    $('sq-btn-practice').addEventListener('click', function () { startRun('practice', curCfg().bank); });
+    $('sq-btn-variant').addEventListener('click', function () { var c = curCfg(); startRun('practice', c.bank.concat(c.variants)); });
+    $('sq-btn-wrong').addEventListener('click', function () {
+      var list = loadSaved().map(function (id) { return ALLQ[id]; }).filter(Boolean);
+      if (list.length) startDrill(list);
+    });
+    $('sq-btn-review').addEventListener('click', function () { renderReview(''); show('review'); });
+    $('sq-btn-stats').addEventListener('click', function () { renderStats(); show('stats'); });
+    $('sq-stats-back').addEventListener('click', goHome);
+    $('sq-review-back').addEventListener('click', goHome);
+    $('sq-review-search').addEventListener('input', function () { renderReview(this.value); });
+    $('sq-review-expand').addEventListener('click', function () { setReviewOpen(true); });
+    $('sq-review-collapse').addEventListener('click', function () { setReviewOpen(false); });
+
+    // ===== 答题 =====
+    function renderQuestion() {
+      var item = run.queue[run.idx];
+      var order = shuffle([0, 1, 2, 3]);
+      run.cur = { q: item, order: order, qStart: Date.now(), answered: false, timerId: null, advanceId: null };
+
+      $('sq-progress').textContent = (run.mode === 'drill')
+        ? '剩余 ' + (run.queue.length - run.idx) + ' 题'
+        : '第 ' + (run.idx + 1) + '/' + run.queue.length + ' 题';
+      $('sq-tag').textContent = item.tag;
+      $('sq-live-score').textContent = String(run.correct);
+      $('sq-question').textContent = item.q;
+
+      var box = $('sq-options');
+      box.innerHTML = '';
+      order.forEach(function (origIdx, dispIdx) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'sq-optcard';
+        b.innerHTML = '<span class="opt-key">' + 'ABCD'[dispIdx] + '</span><span class="opt-text">' + esc(item.opts[origIdx]) + '</span>';
+        b.addEventListener('click', function () { answer(dispIdx); });
+        box.appendChild(b);
+      });
+
+      $('sq-feedback-wrap').innerHTML = '';
+      $('sq-btn-next').hidden = true;
+
+      var perQ = (run.mode === 'exam');
+      $('sq-timer-wrap').style.display = perQ ? 'flex' : 'none';
+      $('sq-total-wrap').style.display = (run.mode === 'full') ? 'flex' : 'none';
+      if (perQ) startTimer();
+    }
+
+    function startTimer() {
+      var role = $('sq-timer-role'), bar = $('sq-timer-bar'), num = $('sq-timer-num');
+      var end = Date.now() + LIMIT * 1000;
+      function tick() {
+        if (!run.cur || run.cur.answered) return;
+        var left = (end - Date.now()) / 1000;
+        if (left <= 0) { num.textContent = '0'; num.classList.add('low'); bar.style.width = '0%'; onTimeout(); return; }
+        num.textContent = String(Math.ceil(left));
+        num.classList.toggle('low', left <= 5);
+        bar.style.width = (left / LIMIT * 100) + '%';
+        role.setAttribute('aria-valuenow', String(Math.ceil(left)));
+        run.cur.timerId = setTimeout(tick, 100);
+      }
+      tick();
+    }
+
+    function lockOptions(pickedIdx) {
+      var btns = $('sq-options').querySelectorAll('.sq-optcard');
+      var cur = run.cur;
+      btns.forEach(function (b, i) {
+        b.disabled = true;
+        if (cur.order[i] === cur.q.ans) b.classList.add('is-correct');
+      });
+      if (typeof pickedIdx === 'number' && cur.order[pickedIdx] !== cur.q.ans) {
+        btns[pickedIdx].classList.add('is-wrong');
+      }
+    }
+
+    function answer(dispIdx) {
+      var cur = run.cur;
+      if (!cur || cur.answered) return;
+      cur.answered = true;
+      if (cur.timerId) { clearTimeout(cur.timerId); cur.timerId = null; }
+      var right = (cur.order[dispIdx] === cur.q.ans);
+      var ms = Date.now() - cur.qStart;
+      run.answeredMs += ms;
+      run.answeredCount++;
+      lockOptions(dispIdx);
+
+      if (right) {
+        run.correct++;
+        $('sq-live-score').textContent = String(run.correct);
+      } else if (run.mode === 'drill') {
+        run.queue.push(cur.q);
+        if (!run.wrongDetail.some(function (w) { return w.id === cur.q.id; })) {
+          recordWrong(cur.q, cur.q.opts[cur.order[dispIdx]]);
+        }
+      } else {
+        recordWrong(cur.q, cur.q.opts[cur.order[dispIdx]]);
+      }
+      if (run.mode === 'drill' && right) run.drillCleared.push(cur.q.id);
+      recordStat(cur.q.id, right);
+      saveState();
+      showFeedback(right, null);
+
+      if (run.mode === 'full') {
+        cur.advanceId = setTimeout(next, 700);
+      } else if (run.mode === 'exam') {
+        cur.advanceId = setTimeout(next, 1500);
+      } else if (run.mode === 'drill') {
+        cur.advanceId = setTimeout(next, 1100);
+      } else {
+        $('sq-btn-next').hidden = false;
+        $('sq-btn-next').focus();
+      }
+    }
+
+    function onTimeout() {
+      var cur = run.cur;
+      if (!cur || cur.answered) return;
+      cur.answered = true;
+      run.answeredMs += Date.now() - cur.qStart;
+      run.answeredCount++;
+      lockOptions(null);
+      recordWrong(cur.q, null);
+      recordStat(cur.q.id, false);
+      saveState();
+      showFeedback(false, '超时未答');
+      cur.advanceId = setTimeout(next, 1500);
+    }
+
+    function recordWrong(q, picked) {
+      run.wrongIds.push(q.id);
+      run.wrongDetail.push({ id: q.id, tag: q.tag, q: q.q, picked: picked, ansText: q.opts[q.ans], tip: q.tip });
+    }
+
+    function showFeedback(right, prefix) {
+      var head = prefix ? prefix + ' · ' : '';
+      var html;
+      if (right) {
+        html = '<div class="sq-feedback ok"><span class="sq-fb-ico">✓</span><div><strong>答对了</strong><div class="text-small sq-subtitle" style="margin-top:2px;">' + esc(run.cur.q.tip) + '</div></div></div>';
+      } else {
+        html = '<div class="sq-feedback bad"><span class="sq-fb-ico">✕</span><div><strong>' + head + '正确答案：' + esc(run.cur.q.opts[run.cur.q.ans]) + '</strong><div class="text-small sq-subtitle" style="margin-top:2px;">' + esc(run.cur.q.tip) + '</div></div></div>';
+      }
+      $('sq-feedback-wrap').innerHTML = html;
+    }
+
+    function next() {
+      if (!run) return;
+      var cur = run.cur;
+      if (cur && cur.advanceId) { clearTimeout(cur.advanceId); cur.advanceId = null; }
+      if (run.idx + 1 >= run.queue.length) { finish(); return; }
+      run.idx++;
+      renderQuestion();
+    }
+    $('sq-btn-next').addEventListener('click', next);
+
+    // ===== 全真模式：8 分钟总计时，到时强制收卷 =====
+    function fmtClock(ms) {
+      var s = Math.max(0, Math.ceil(ms / 1000));
+      var m = Math.floor(s / 60), r = s % 60;
+      return m + ':' + (r < 10 ? '0' : '') + r;
+    }
+    function startTotalTimer() {
+      var end = Date.now() + TOTAL_MS;
+      function tick() {
+        if (!run || run.done) return;
+        var leftMs = end - Date.now();
+        var num = $('sq-total-num'), bar = $('sq-total-bar'), role = $('sq-total-role');
+        if (leftMs <= 0) {
+          num.textContent = '0:00'; num.classList.add('low'); bar.style.width = '0%';
+          forceFinish(); return;
+        }
+        num.textContent = fmtClock(leftMs);
+        num.classList.toggle('low', leftMs <= 60000);
+        bar.style.width = (leftMs / TOTAL_MS * 100) + '%';
+        role.setAttribute('aria-valuenow', String(Math.ceil(leftMs / 1000)));
+        run.totalTimerId = setTimeout(tick, 200);
+      }
+      tick();
+    }
+    function forceFinish() {
+      if (!run || run.done) return;
+      if (run.cur) {
+        if (run.cur.advanceId) { clearTimeout(run.cur.advanceId); run.cur.advanceId = null; }
+        if (run.cur.timerId) { clearTimeout(run.cur.timerId); run.cur.timerId = null; }
+        if (!run.cur.answered) { run.cur.answered = true; recordWrong(run.cur.q, null); }
+      }
+      for (var i = run.idx + 1; i < run.queue.length; i++) recordWrong(run.queue[i], null);
+      finish();
+    }
+
+    // ===== 结算 =====
+    function finish() {
+      if (run.done) return;
+      run.done = true;
+      if (run.totalTimerId) { clearTimeout(run.totalTimerId); run.totalTimerId = null; }
+      if (run.cur && run.cur.timerId) { clearTimeout(run.cur.timerId); run.cur.timerId = null; }
+      var total = (run.mode === 'drill') ? run.base.length : run.queue.length;
+      var score = (run.mode === 'drill') ? run.drillCleared.length : run.correct;
+      var wrongN = total - score;
+      var avg = run.answeredCount ? (run.answeredMs / run.answeredCount / 1000) : 0;
+
+      // 累计错题本（含本场之前存的）
+      var ids = run.wrongIds.slice();
+      loadSaved().forEach(function (id) { if (ids.indexOf(id) < 0) ids.push(id); });
+      if (run.mode === 'drill') {
+        run.drillCleared.forEach(function (id) {
+          var i = ids.indexOf(id);
+          if (i >= 0) ids.splice(i, 1);
+        });
+        var pickedMap = {};
+        run.wrongDetail.forEach(function (w) { pickedMap[w.id] = w.picked; });
+        run.wrongDetail = run.base.filter(function (q) {
+          return run.drillCleared.indexOf(q.id) < 0;
+        }).map(function (q) {
+          return { id: q.id, tag: q.tag, q: q.q, picked: pickedMap[q.id] || null, ansText: q.opts[q.ans], tip: q.tip };
+        });
+      }
+      run.wrongAllTime = ids;
+      saveState();
+
+      $('sq-score').textContent = String(score);
+      $('sq-total').textContent = String(total);
+      var modeName = run.mode === 'full' ? '全真模式' : (run.mode === 'exam' ? '单题计时' : (run.mode === 'drill' ? '错题歼灭' : '练习模式'));
+      var usedSec = Math.round((Date.now() - run.startAt) / 1000);
+      var usedStr = Math.floor(usedSec / 60) + ':' + (usedSec % 60 < 10 ? '0' : '') + (usedSec % 60);
+      var pct = total ? Math.round(score / total * 100) : 0;
+      var acc = $('sq-acc');
+      acc.textContent = '正确率 ' + pct + '%' + (wrongN === 0 ? (run.mode === 'drill' ? ' · 错题全部歼灭！' : ' · 全对，漂亮！') : '');
+      acc.className = 'sq-acc ' + (pct >= 80 ? 'good' : (pct >= 60 ? 'mid' : 'bad'));
+      $('sq-result-chips').innerHTML =
+        '<span class="sq-chip">' + modeName + '</span>' +
+        '<span class="sq-chip">用时 ' + usedStr + '</span>' +
+        '<span class="sq-chip">平均 ' + avg.toFixed(1) + ' 秒/题</span>' +
+        (run.mode === 'drill' ? '<span class="sq-chip">清零 ' + score + '/' + total + '</span>' : '') +
+        (wrongN === 0 ? '' : '<span class="sq-chip">错/未答 ' + wrongN + ' 题</span>');
+
+      var list = $('sq-wrong-list');
+      if (run.wrongDetail.length === 0) {
+        $('sq-wrong-card').hidden = true;
+      } else {
+        $('sq-wrong-card').hidden = false;
+        $('sq-wrong-count').textContent = String(run.wrongDetail.length);
+        list.innerHTML = run.wrongDetail.map(function (w) {
+          return '<div class="sq-wrong-item">' +
+            '<div class="text-small sq-subtitle">' + esc(w.tag) + '</div>' +
+            '<div style="margin:2px 0 4px;">' + esc(w.q) + '</div>' +
+            '<div class="text-small"><span class="sq-ok-ico">✓</span> <strong>' + esc(w.ansText) + '</strong></div>' +
+            (w.picked ? '<div class="text-small sq-subtitle"><span class="sq-bad-ico">✗</span> 你选了：' + esc(w.picked) + '</div>' : '<div class="text-small sq-subtitle"><span class="sq-bad-ico">✗</span> 未作答（超时）</div>') +
+            '<div class="text-small" style="margin-top:2px;">' + esc(w.tip) + '</div>' +
+            '</div>';
+        }).join('');
+      }
+
+      var b2 = $('sq-btn-wrong2');
+      if (ids.length > 0) {
+        b2.hidden = false;
+        b2.textContent = '错题歼灭（' + ids.length + ' 题）';
+      } else {
+        b2.hidden = true;
+      }
+      show('result');
+    }
+
+    $('sq-btn-again').addEventListener('click', function () {
+      if (run.mode === 'drill') {
+        startDrill(run.wrongAllTime.map(function (id) { return ALLQ[id]; }).filter(Boolean));
+      } else {
+        startRun(run.mode, run.base);
+      }
+    });
+    $('sq-btn-wrong2').addEventListener('click', function () {
+      var ids = run.wrongAllTime || loadSaved();
+      var list = ids.map(function (id) { return ALLQ[id]; }).filter(Boolean);
+      if (list.length) startDrill(list);
+    });
+    function goHome() {
+      if (run) {
+        if (run.cur) {
+          if (run.cur.timerId) { clearTimeout(run.cur.timerId); run.cur.timerId = null; }
+          if (run.cur.advanceId) { clearTimeout(run.cur.advanceId); run.cur.advanceId = null; }
+        }
+        if (run.totalTimerId) { clearTimeout(run.totalTimerId); run.totalTimerId = null; }
+        run.done = true;
+      }
+      run = null;
+      renderStartButtons();
+      show('start');
+      window.scrollTo(0, 0);
+    }
+    $('sq-btn-exit').addEventListener('click', goHome);
+    $('sq-btn-home').addEventListener('click', goHome);
+    window.sqHandleBack = function () {
+      if (!screens.start.hidden) return false;
+      goHome();
+      return true;
+    };
+
+    // ===== 错题歼灭：错题连刷，答错重新入队，答对清零 =====
+    function startDrill(list) {
+      run = {
+        mode: 'drill',
+        base: list.slice(),
+        queue: shuffle(list),
+        idx: 0,
+        correct: 0,
+        wrongIds: [],
+        wrongDetail: [],
+        drillCleared: [],
+        answeredMs: 0,
+        answeredCount: 0,
+        startAt: Date.now(),
+        totalTimerId: null,
+        done: false
+      };
+      show('quiz');
+      renderQuestion();
+    }
+
+    // ===== 战况统计：薄弱知识点排行，点击专项直刷 =====
+    function renderStats() {
+      var body = $('sq-stats-body');
+      var tags = {}, totalA = 0, totalC = 0;
+      Object.keys(STATS).forEach(function (qid) {
+        var q = ALLQ[qid];
+        if (!q) return;
+        var s = STATS[qid];
+        totalA += s[0]; totalC += s[1];
+        var t = tags[q.tag] || (tags[q.tag] = [0, 0]);
+        t[0] += s[0]; t[1] += s[1];
+      });
+      if (totalA === 0) {
+        body.innerHTML = '<div class="sq-subtitle" style="margin-top:10px;">还没有答题记录——先去刷一轮，回来就能看到薄弱知识点排行。</div>';
+        return;
+      }
+      var pct = Math.round(totalC / totalA * 100);
+      var rows = Object.keys(tags).map(function (tag) {
+        return { tag: tag, a: tags[tag][0], c: tags[tag][1] };
+      }).sort(function (x, y) { return (x.c / x.a) - (y.c / y.a) || y.a - x.a; });
+      var html = '<div class="sq-stat-top">' +
+        '<div class="sq-stat-cell"><div class="text-small sq-subtitle">累计作答</div><div class="sq-stat-val">' + totalA + ' 次</div></div>' +
+        '<div class="sq-stat-cell"><div class="text-small sq-subtitle">总正确率</div><div class="sq-stat-val">' + pct + '%</div></div>' +
+        '</div>' +
+        '<div class="text-small sq-subtitle" style="margin-top:10px;">薄弱在前，点击知识点直接专项刷 · <span style="color:var(--red)">红 &lt;60%</span> / 60–79% / <span style="color:var(--green)">绿 ≥80%</span></div>';
+      rows.forEach(function (r, i) {
+        var p = Math.round(r.c / r.a * 100);
+        var barCls = (p < 60) ? ' sq-bar-weak' : ((p >= 80) ? ' sq-bar-ok' : '');
+        html += '<button type="button" class="btn sq-stat-row" data-tag="' + esc(r.tag) + '">' +
+          '<span class="sq-stat-rank">' + (i + 1) + '</span>' +
+          '<span class="sq-stat-name">' + esc(r.tag) + '</span>' +
+          '<span class="progress sq-stat-bar' + barCls + '"><span class="progress-bar" style="width:' + p + '%"></span></span>' +
+          '<span class="tabular-nums text-small" style="flex:none; min-width:3em; text-align:right;">' + p + '%</span>' +
+          '<span class="text-small sq-subtitle" style="flex:none;">' + r.a + ' 次</span></button>';
+      });
+      body.innerHTML = html;
+      body.querySelectorAll('.sq-stat-row').forEach(function (b) {
+        b.addEventListener('click', function () { startTagPractice(b.getAttribute('data-tag')); });
+      });
+    }
+    function startTagPractice(tag) {
+      var c = curCfg();
+      var list = c.bank.concat(c.variants).filter(function (q) { return q.tag === tag; });
+      if (list.length) startRun('practice', list);
+    }
+
+    // ===== 背题速览：题干点击展开答案与记忆点，支持搜索 =====
+    function renderReview(keyword) {
+      var kw = (keyword || '').trim().toLowerCase();
+      var all = curCfg().bank.concat(curCfg().variants);
+      var list = all.filter(function (q) {
+        if (!kw) return true;
+        var hay = (q.q + ' ' + q.tag + ' ' + q.opts[q.ans] + ' ' + q.tip).toLowerCase();
+        return hay.indexOf(kw) >= 0;
+      });
+      var meta = kw ? ('匹配 ' + list.length + ' / ' + all.length + ' 题') : ('共 ' + all.length + ' 题 · 点击题干展开答案');
+      var html = '<div class="sq-rev-meta"><span class="text-small sq-subtitle">' + meta + '</span></div>';
+      list.forEach(function (q) {
+        var num = all.indexOf(q) + 1;
+        html += '<details class="sq-rev-item"><summary>' +
+          '<span class="sq-rev-chev">▶</span>' +
+          '<span class="sq-rev-num">' + num + '</span>' +
+          '<span class="sq-rev-q"><span class="sq-chip">' + esc(q.tag) + '</span> ' + esc(q.q) + '</span></summary>' +
+          '<div class="sq-rev-body"><div><span class="sq-ok-ico">✓</span> <strong>' + esc(q.opts[q.ans]) + '</strong></div>' +
+          '<div class="text-small sq-subtitle" style="margin-top:4px;">' + esc(q.tip) + '</div></div></details>';
+      });
+      if (!list.length) html += '<div class="sq-subtitle" style="margin-top:8px;">没有匹配的题目，换个关键词试试。</div>';
+      $('sq-review-list').innerHTML = html;
+    }
+    function setReviewOpen(open) {
+      $('sq-review-list').querySelectorAll('details').forEach(function (d) { d.open = open; });
+    }
+
+    // ===== 键盘 =====
+    document.addEventListener('keydown', function (ev) {
+      if (!run || screens.quiz.hidden) return;
+      var cur = run.cur;
+      if (!cur) return;
+      var k = ev.key;
+      if (!cur.answered) {
+        var map = { '1': 0, '2': 1, '3': 2, '4': 3, 'a': 0, 'b': 1, 'c': 2, 'd': 3 };
+        var kl = k.toLowerCase();
+        if (kl in map) {
+          var btns = $('sq-options').querySelectorAll('.sq-optcard');
+          if (btns[map[kl]] && !btns[map[kl]].disabled) answer(map[kl]);
+          ev.preventDefault();
+        }
+      } else {
+        if (k === 'Enter' || k === ' ') { next(); ev.preventDefault(); }
+      }
+    });
+
+    renderSubject();
+    renderStartButtons();
+  })();
+  </script>
+</div>
+
+<script>
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('./sw.js').catch(function () {});
+  }
+</script>
+</body>
+</html>
