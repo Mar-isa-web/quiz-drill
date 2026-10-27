@@ -796,7 +796,7 @@
           var ids = Array.isArray(pc.wrongIds) ? pc.wrongIds.filter(function (id) {
             return Object.prototype.hasOwnProperty.call(ALLQ, id);
           }) : [];
-          return { wrongIds: ids, stats: (pc.stats && typeof pc.stats === 'object') ? pc.stats : {} };
+          return { wrongIds: ids, stats: (pc.stats && typeof pc.stats === 'object') ? pc.stats : {}, subject: (typeof pc.subject === 'string') ? pc.subject : null };
         }
       } catch (e) {}
       try {
@@ -806,13 +806,15 @@
           var ids2 = Array.isArray(d.wrongIds) ? d.wrongIds.filter(function (id) {
             return Object.prototype.hasOwnProperty.call(ALLQ, id);
           }) : [];
-          return { wrongIds: ids2, stats: (d.stats && typeof d.stats === 'object') ? d.stats : {} };
+          return { wrongIds: ids2, stats: (d.stats && typeof d.stats === 'object') ? d.stats : {}, subject: (typeof d.subject === 'string') ? d.subject : null };
         }
       } catch (e) {}
-      return { wrongIds: [], stats: {} };
+      return { wrongIds: [], stats: {}, subject: null };
     }
     function loadSaved() { return loadState().wrongIds; }
-    var STATS = loadState().stats;
+    var LS0 = loadState();
+    var STATS = LS0.stats;
+    if (LS0.subject && SUBJECTS[LS0.subject]) curSub = LS0.subject;
     function recordStat(qid, right) {
       var s = STATS[qid];
       if (!s) { s = STATS[qid] = [0, 0]; }
@@ -823,12 +825,12 @@
       try {
         if (window.zcode && window.zcode.setWidgetState) {
           var ids = (run && run.wrongAllTime) ? run.wrongAllTime : loadSaved();
-          window.zcode.setWidgetState({ privateContent: { wrongIds: ids, stats: STATS } }).catch(function () {});
+          window.zcode.setWidgetState({ privateContent: { wrongIds: ids, stats: STATS, subject: curSub } }).catch(function () {});
         }
       } catch (e) {}
       try {
         var ids2 = (run && run.wrongAllTime) ? run.wrongAllTime : loadSaved();
-        localStorage.setItem('sq-quiz-state', JSON.stringify({ wrongIds: ids2, stats: STATS }));
+        localStorage.setItem('sq-quiz-state', JSON.stringify({ wrongIds: ids2, stats: STATS, subject: curSub }));
       } catch (e) {}
     }
     document.addEventListener('zcode:set_globals', function (ev) {
@@ -838,8 +840,17 @@
     });
 
     // ===== 开始页 =====
+    function subjectIds() {
+      var c = curCfg(); var s = {};
+      c.bank.concat(c.variants).forEach(function (q) { s[q.id] = 1; });
+      return s;
+    }
+    function savedForCurrent() {
+      var s = subjectIds();
+      return loadSaved().filter(function (id) { return s[id]; });
+    }
     function renderStartButtons() {
-      var saved = loadSaved();
+      var saved = savedForCurrent();
       var btn = $('sq-btn-wrong');
       if (saved.length > 0) {
         btn.hidden = false;
@@ -889,13 +900,14 @@
       $('sq-quick-main').textContent = c.quickMain; $('sq-quick-sub').textContent = c.quickSub;
       $('sq-practice-main').textContent = c.practiceMain; $('sq-practice-sub').textContent = c.practiceSub;
       $('sq-variant-main').textContent = c.variantMain; $('sq-variant-sub').textContent = c.variantSub;
+      renderStartButtons();
     }
     $('sq-btn-exam').addEventListener('click', function () { var c = curCfg(); startRun('full', c.examAll ? c.bank : shuffle(c.bank).slice(0, c.examCount)); });
     $('sq-btn-quick').addEventListener('click', function () { var c = curCfg(); startRun('exam', shuffle(c.bank).slice(0, c.quickCount)); });
     $('sq-btn-practice').addEventListener('click', function () { startRun('practice', curCfg().bank); });
     $('sq-btn-variant').addEventListener('click', function () { var c = curCfg(); startRun('practice', c.bank.concat(c.variants)); });
     $('sq-btn-wrong').addEventListener('click', function () {
-      var list = loadSaved().map(function (id) { return ALLQ[id]; }).filter(Boolean);
+      var list = savedForCurrent().map(function (id) { return ALLQ[id]; }).filter(Boolean);
       if (list.length) startDrill(list);
     });
     $('sq-btn-review').addEventListener('click', function () { renderReview(''); show('review'); });
@@ -1162,7 +1174,8 @@
       }
     });
     $('sq-btn-wrong2').addEventListener('click', function () {
-      var ids = run.wrongAllTime || loadSaved();
+      var s = subjectIds();
+      var ids = (run.wrongAllTime || loadSaved()).filter(function (id) { return s[id]; });
       var list = ids.map(function (id) { return ALLQ[id]; }).filter(Boolean);
       if (list.length) startDrill(list);
     });
@@ -1250,8 +1263,11 @@
       });
     }
     function startTagPractice(tag) {
-      var c = curCfg();
-      var list = c.bank.concat(c.variants).filter(function (q) { return q.tag === tag; });
+      var list = [];
+      Object.keys(SUBJECTS).forEach(function (k) {
+        list = list.concat(SUBJECTS[k].bank, SUBJECTS[k].variants);
+      });
+      list = list.filter(function (q) { return q.tag === tag; });
       if (list.length) startRun('practice', list);
     }
 
