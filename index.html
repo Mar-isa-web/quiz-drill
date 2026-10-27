@@ -1225,24 +1225,27 @@
     // ===== 战况统计：薄弱知识点排行，点击专项直刷 =====
     function renderStats() {
       var body = $('sq-stats-body');
+      var c = curCfg();
+      var sids = subjectIds();
       var tags = {}, totalA = 0, totalC = 0;
       Object.keys(STATS).forEach(function (qid) {
         var q = ALLQ[qid];
-        if (!q) return;
+        if (!q || !sids[qid]) return;
         var s = STATS[qid];
         totalA += s[0]; totalC += s[1];
         var t = tags[q.tag] || (tags[q.tag] = [0, 0]);
         t[0] += s[0]; t[1] += s[1];
       });
       if (totalA === 0) {
-        body.innerHTML = '<div class="sq-subtitle" style="margin-top:10px;">还没有答题记录——先去刷一轮，回来就能看到薄弱知识点排行。</div>';
+        body.innerHTML = '<div class="text-small sq-subtitle">科目：' + esc(c.name) + '</div><div class="sq-subtitle" style="margin-top:10px;">这门课还没有答题记录——先去刷一轮，回来就能看到薄弱知识点排行。</div>';
         return;
       }
       var pct = Math.round(totalC / totalA * 100);
       var rows = Object.keys(tags).map(function (tag) {
         return { tag: tag, a: tags[tag][0], c: tags[tag][1] };
       }).sort(function (x, y) { return (x.c / x.a) - (y.c / y.a) || y.a - x.a; });
-      var html = '<div class="sq-stat-top">' +
+      var html = '<div class="text-small sq-subtitle" style="margin-bottom:8px;">科目：' + esc(c.name) + '</div>' +
+        '<div class="sq-stat-top">' +
         '<div class="sq-stat-cell"><div class="text-small sq-subtitle">累计作答</div><div class="sq-stat-val">' + totalA + ' 次</div></div>' +
         '<div class="sq-stat-cell"><div class="text-small sq-subtitle">总正确率</div><div class="sq-stat-val">' + pct + '%</div></div>' +
         '</div>' +
