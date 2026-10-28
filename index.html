@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>刷题模拟器 · Servlet / 计组期末</title>
+<title>刷题模拟器 · Servlet / 计组 / 数据库</title>
 <meta name="description" content="科目刷题：Servlet 考点 + 计组期末真题单选；全真计时模拟、错题歼灭、背题速览、战况统计">
 <style>
   :root { color-scheme: light dark; }
@@ -177,7 +177,8 @@
     #servlet-quiz-app .sq-stat-bar { flex: 1 1 0; }
     #servlet-quiz-app .sq-bar-weak .progress-bar { background: var(--red); }
     #servlet-quiz-app .sq-bar-ok .progress-bar { background: var(--green); }
-    #servlet-quiz-app .sq-subjects { display:flex; gap:8px; margin-top:14px; }
+    #servlet-quiz-app .sq-subjects { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+    #servlet-quiz-app .sq-subjects .btn { flex:1 1 30%; min-width:0; }
     #servlet-quiz-app .sq-subjects .btn { flex:1; min-height:46px; flex-direction:column; gap:2px; padding:6px 8px; }
     #servlet-quiz-app .sq-subjects .btn.active { border-color:var(--primary); box-shadow: inset 0 0 0 1px var(--primary); font-weight:600; }
     #servlet-quiz-app .sq-modules-wrap { flex-wrap:wrap; margin-top:8px; }
