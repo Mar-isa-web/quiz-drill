@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>刷题模拟器 · Servlet / 计组期末</title>
+<title>刷题模拟器 · Servlet / 计组 / 数据库</title>
 <meta name="description" content="科目刷题：Servlet 考点 + 计组期末真题单选；全真计时模拟、错题歼灭、背题速览、战况统计">
 <style>
   :root { color-scheme: light dark; }
@@ -177,9 +177,12 @@
     #servlet-quiz-app .sq-stat-bar { flex: 1 1 0; }
     #servlet-quiz-app .sq-bar-weak .progress-bar { background: var(--red); }
     #servlet-quiz-app .sq-bar-ok .progress-bar { background: var(--green); }
-    #servlet-quiz-app .sq-subjects { display:flex; gap:8px; margin-top:14px; }
+    #servlet-quiz-app .sq-subjects { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+    #servlet-quiz-app .sq-subjects .btn { flex:1 1 30%; min-width:0; }
     #servlet-quiz-app .sq-subjects .btn { flex:1; min-height:46px; flex-direction:column; gap:2px; padding:6px 8px; }
     #servlet-quiz-app .sq-subjects .btn.active { border-color:var(--primary); box-shadow: inset 0 0 0 1px var(--primary); font-weight:600; }
+    #servlet-quiz-app .sq-modules-wrap { flex-wrap:wrap; margin-top:8px; }
+    #servlet-quiz-app .sq-modules-wrap .btn { flex:1 1 140px; min-height:46px; flex-direction:column; gap:2px; padding:6px 8px; }
     #servlet-quiz-app .sq-sub-name-sub { font-size:11px; font-weight:400; color:var(--muted-foreground); }
     #servlet-quiz-app .sq-start-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
     #servlet-quiz-app .sq-start-btns .btn { width: 100%; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px; min-height: 58px; padding: 9px 16px; }
@@ -197,13 +200,14 @@
       <div class="sq-title"><h2 style="margin:0;" id="sq-h2">刷题模拟</h2></div>
       <div class="sq-subtitle" id="sq-subtitle-line">核心 33 题（对准考题题号）+ 28 道变式题（覆盖其余子知识点）· 每次乱序</div>
       <div class="sq-chips">
-        <span class="sq-chip">8 分钟强制收卷</span>
-        <span class="sq-chip">61 题题库</span>
+        <span class="sq-chip" id="sq-chip-exam">8 分钟强制收卷</span>
+        <span class="sq-chip" id="sq-chip-bank">61 题题库</span>
         <span class="sq-chip">错题本</span>
         <span class="sq-chip">离线可用</span>
       </div>
     </div>
     <div class="sq-subjects" id="sq-subjects"></div>
+    <div class="sq-subjects sq-modules-wrap" id="sq-modules" hidden></div>
     <div class="sq-start-btns">
       <button type="button" class="btn btn-primary" id="sq-btn-exam"><span id="sq-exam-main">全真模拟 · 33 题 / 8 分钟</span><span class="sq-btn-sub" id="sq-exam-sub">到时强制收卷，还原真实考场压力</span></button>
       <button type="button" class="btn" id="sq-btn-quick"><span id="sq-quick-main">单题计时快刷 · 15 题 × 15 秒</span><span class="sq-btn-sub" id="sq-quick-sub">碎片时间来一轮，保持手感</span></button>
@@ -216,7 +220,7 @@
       <button type="button" class="btn btn-ghost" id="sq-btn-stats">战况统计</button>
     </div>
     <div class="text-small sq-subtitle sq-kbd-hint" style="margin-top:12px;">快捷键：数字 1–4 或字母 A–D 选答案，回车 / 空格 立即进下一题 · 全真模式答完自动跳题</div>
-    <div class="text-small sq-subtitle" style="margin-top:8px; text-align:center; opacity:.8;">当前版本 <strong>v1.6</strong> · 选项显示 A/B/C/D 字母即为最新版</div>
+    <div class="text-small sq-subtitle" style="margin-top:8px; text-align:center; opacity:.8;">当前版本 <strong>v1.7</strong> · 新增数据库科目（单元测试小板块） · 选项显示 A/B/C/D 字母即为最新版</div>
   </div>
 
   <!-- 答题页 -->
@@ -733,11 +737,164 @@
         ans: 0, tip: "只要寻址中出现 BP，默认段就从 DS 换成 SS——真题最高频陷阱。（变式）" }
     ];
 
+    var DB_U1 = [
+      { id: 'db1-1', tag: '参照完整性', q: '关系数据库中，参照完整性规则是对_____的约束。',
+        opts: ['候选键', '主键', '外键', '外表'], ans: 2,
+        tip: '参照完整性约束的是外键：外键取值必须参照主表中已存在的元组，或为空。' },
+      { id: 'db1-2', tag: '联系的元数', q: '概念模型中的主要结构是实体和联系，联系发生在实体之间，可与_____实体有关。',
+        opts: ['2个或2个以上', '0个', '1个', '1个或1个以上'], ans: 3,
+        tip: '课程口径：承认一元（递归）联系，如员工-管理-员工，联系可与1个或1个以上实体有关。' },
+      { id: 'db1-3', tag: '物理独立性', q: '数据库系统中，数据的物理独立性是指________。',
+        opts: ['用户程序与DBMS的相互独立', '用户的数据与数据在磁盘中的存储方式是相互独立的', '数据库与数据库管理系统的相互独立', '应用程序与数据库中数据的逻辑结构相互独立'], ans: 1,
+        tip: '物理独立性：应用程序不受磁盘存储方式改变的影响；逻辑独立性针对的是全局逻辑结构。' },
+      { id: 'db1-4', tag: '基本运算', q: '在所有的关系代数运算中，五种基本运算为____。',
+        opts: ['并、差、交、选择、广义笛卡尔积', '并、差、交、选择、投影', '并、差、选择、投影、广义笛卡尔积', '并、差、选择、投影、自然连接'], ans: 2,
+        tip: '五种基本运算：并、差、选择、投影、广义笛卡尔积；交、连接、除都可由它们导出。' },
+      { id: 'db1-5', tag: '连接运算', q: '将两个关系中具有共同属性值的元组连接到一起构成新关系的操作称为______。',
+        opts: ['扫描', '连接', '选择', '投影'], ans: 1,
+        tip: '连接：按公共属性值相等的条件，把两关系的元组拼接成新关系的元组。' },
+      { id: 'db1-6', tag: '联系的实现', q: '关系数据库中，用______来实现ER模型中实体之间的联系',
+        opts: ['对象', '数据类型', '表', '视图'], ans: 2,
+        tip: '关系数据库里联系也用表实现：1:n并入n端表加外键，m:n独立建表。' },
+      { id: 'db1-7', tag: '自然连接', q: '一般情况下，当对关系R和S使用自然连接时，要求R和S含有一个或多个共有的________。',
+        opts: ['元组', '属性', '记录', '行'], ans: 1,
+        tip: '自然连接按同名公共属性相等拼接并去掉重复列；没有公共属性就谈不上自然连接。' },
+      { id: 'db1-8', tag: 'E-R图要素', q: 'E-R图中的主要元素是实体型、_____和属性。',
+        opts: ['结点', '表', '联系', '记录型'], ans: 2,
+        tip: 'E-R图三要素：实体型（矩形）、联系（菱形）、属性（椭圆）。' },
+      { id: 'db1-9', tag: '数据独立性', q: '在数据库系统阶段，关于数据独立性的描述，最准确的是_______。',
+        opts: ['有逻辑独立性,没有物理独立性', '独立性非常差', '有物理独立性,没有逻辑独立性', '有高度的物理独立性和一定程度的逻辑独立性'], ans: 3,
+        tip: 'DBMS提供高度的物理独立性；逻辑独立性受外模式/模式映射限制，只有一定程度。' },
+      { id: 'db1-10', tag: '运算代价', q: '一般来说，关系运算中花费时间可能最长的运算是____。',
+        opts: ['选择', '笛卡尔积', '除', '投影'], ans: 1,
+        tip: '笛卡尔积元组数为两表之积、规模最大，实际查询要尽早配选择条件做优化。' },
+      { id: 'db1-11', tag: '三级级次', q: '在数据库技术中，把数据库的结构被划分为外模式、模式和内模式，分别对应用户级、_____和存储级三个层次。',
+        opts: ['概念级', '管理员级', '内部级', '外部级'], ans: 0,
+        tip: '外模式-用户级，模式-概念级，内模式-存储级。' },
+      { id: 'db1-12', tag: '联系的表示', q: '关系数据模型要准确表示概念数据模型，对于概念模型中的联系，关系数据模型_____。',
+        opts: ['只能表示实体间的1∶n联系', '只能表示实体间的1∶1联系', '只能表示实体间的m∶n联系', '可以表示实体间的上述三种联系'], ans: 3,
+        tip: '1:1、1:n可并入实体表加外键，m:n独立建表——三种联系都能表示。' },
+      { id: 'db1-13', tag: '专门关系运算', q: '关系数据库管理系统应能实现的专门关系运算包括_______。',
+        opts: ['选择、投影、连接', '排序、索引、统计', '关联、更新、排序', '显示、打印、制表'], ans: 0,
+        tip: '专门关系运算：选择σ、投影π、连接（还有除）；其余属于物理组织或输出功能。' },
+      { id: 'db1-14', tag: '数据库目的', q: '在软件系统中应用数据库的主要目的是为了解决__________的问题。',
+        opts: ['数据保密', '数据量大', '数据完整性', '数据共享'], ans: 3,
+        tip: '数据库的核心价值：集中管理、数据共享、减少冗余、多用户并发使用。' },
+      { id: 'db1-15', tag: '概念设计', q: '在数据库的概念设计中，最常用的数据模型是____。',
+        opts: ['实体联系模型', '形象模型', '逻辑模型', '物理模型'], ans: 0,
+        tip: '概念设计用E-R模型（实体联系模型），贴近用户、独立于具体DBMS。' },
+      { id: 'db1-16', tag: '实体与属性', q: '关于实体和属性之间的判别，说法不正确的是（ ）。',
+        opts: ['如果需要其他不同类的多个信息来描述，则应该作为实体。', '属性不会跟其他属性或实体产生联系，而实体可以。', '如果信息可以分别不同层次或不同类型的组成部分，则应该使用属性来描述。', '属性可以属于多个实体，实体也可以拥有多个属性。'], ans: 3,
+        tip: '属性只能唯一归属一个实体；被多个实体共用、需要自身描述的信息应升级为实体。' },
+      { id: 'db1-17', tag: 'M:N转换', q: '从E-R模型关系向关系模型转换时，一个M∶N联系转换为关系模型时，按照转换规则该关系模式的主键_____。',
+        opts: ['是两端实体主键的组合', '包含了两端实体的主键', '是M端实体的主键', '是N端实体的主键'], ans: 1,
+        tip: '课程口径：M:N联系独立成表，主键【包含两端实体的主键】（组合键），不选单端主键。' },
+      { id: 'db1-18', tag: '关系术语', q: '在关系数据模型中，通常可以把_______称为属性。',
+        opts: ['记录', '字段', '模式', '基本表'], ans: 1,
+        tip: '对应关系：表-关系、行-元组/记录、列-字段/属性。' },
+      { id: 'db1-19', tag: '关系模型辨析', q: '对关系模型的叙述中，错误的是______。',
+        opts: ['用二维表表示关系模型是其一大特点', '关系模型可以兼容层次模型和网状模型', '关系模型建立在严格的数学理论基础之上', '微机DBMS绝大部分采取关系数据模型'], ans: 1,
+        tip: '层次、网状、关系是三种不同的数据模型，关系模型谈不上【兼容】另外两种。' },
+      { id: 'db1-20', tag: 'E-R合并冲突', q: '如果在一个E-R图中年龄用出生年月表示，而在另一个E-R图中年龄用整数表示，则在两个E-R图合并的过程中，所发生的冲突为______。',
+        opts: ['结构冲突', '并发冲突', '命名冲突', '属性冲突'], ans: 3,
+        tip: '同一属性在不同局部E-R图中类型/格式/取值范围不一致，属于属性冲突。' },
+      { id: 'db1-21', tag: '关系规范', q: '通常情况下，下面的关系描述中，不太适合作为关系数据库中关系是_____。',
+        opts: ['R4(学生号,学生名,简历)', 'R3(学生号,学生名,宿舍号)', 'R1(学生号,学生名,性别)', 'R2(学生号,学生名,班级号)'], ans: 0,
+        tip: '简历是大段文字、可再分，不满足第一范式的属性原子性；其余都是原子字段。' },
+      { id: 'db1-22', tag: '联系的处理⚠️', q: '下面关于联系的处理中，错误的是（ ）。',
+        opts: ['多对多联系如果理解起来有困难，可以化解为两个一对多的联系。', '多联系也有存在的必要性与合理性，但是要尽量通过合并进行减少。', '多值联系的存在会导致一系列后继问题的出现，需要通过弱实体消除多值联系。', '三元联系可以简化ER图，因此可以适当存在。'], ans: 1,
+        tip: '⚠️争议题（官方答案未公布，当前为推断）：课件口径是多值的内容用【弱实体】消除而非【合并减少】，故B最可能是错误项；若日后判卷公布答案请以此为准。' },
+      { id: 'db1-23', tag: '关键字', q: '关系模型中，关系的关键字是_______。',
+        opts: ['可由一个或多个其值能惟一标识该关系模式中任何元组的属性组成', '可由多个任意属性组成', '至多由一个属性组成', '以上都不是'], ans: 0,
+        tip: '关键字（码）：能唯一标识元组的最小属性集，可以是单个属性也可以是组合属性。' },
+      { id: 'db1-24', tag: '数据库存储', q: '在数据库中存储的内容是_________。',
+        opts: ['数据', '数据以及数据之间的联系', '信息', '数据模型'], ans: 1,
+        tip: '数据库既存数据本身，也存数据之间的联系——这是相对文件系统的重要优势。' },
+      { id: 'db1-25', tag: '主码', q: '关系模型中，一个关系只有一个_______。',
+        opts: ['外码', '主码', '超码', '候选码'], ans: 1,
+        tip: '候选码可以有多个，但主码（主键）在一个关系中只能指定一个。' },
+      { id: 'db1-26', tag: '三级模式', q: '在数据库的三级模式结构中，描述数据库中全体数据的全局逻辑结构和特征的是_____。',
+        opts: ['模式', '外模式', '存储模式', '内模式'], ans: 0,
+        tip: '模式（概念模式）=全局逻辑结构；外模式是局部视图；内模式是存储描述。' },
+      { id: 'db1-27', tag: '弱实体', q: '关于弱实体的说法中，错误的是（ ）。',
+        opts: ['弱实体相对于强实体，一般都不重要，因此可以直接丢弃。', '弱实体倾向于表达实体之间产生的信息。', '弱实体可以简化复杂的联系。', '弱实体不能脱离对应的强实体去理解，去应用。'], ans: 0,
+        tip: '弱实体依赖强实体存在（如订单-订单明细），是重要的业务数据，不能随意丢弃。' },
+      { id: 'db1-28', tag: 'E-R图符号', q: '数据库概念设计的E-R方法中，用属性描述实体的特征，属性在E-R图中，用_____表示。',
+        opts: ['矩形', '四边形', '椭圆形', '菱形'], ans: 2,
+        tip: '实体-矩形，联系-菱形，属性-椭圆；多值属性双椭圆，派生属性虚线椭圆。' },
+      { id: 'db1-29', tag: 'm:n处理', q: '如果两个实体之间的联系是m∶n，则进一步的处理正确的是____。',
+        opts: ['需要引入第三个交叉关系', '可以引入第三个交叉关系', '不需要引入第三个交叉关系', '需要合并两个实体'], ans: 0,
+        tip: 'M:N联系转换为关系模型时必须独立建表（引入交叉关系），两端主键进表作外键并组成主键。' },
+      { id: 'db1-30', tag: '外模式', q: '在数据库系统中,通常用三级模式来描述数据库,其中_______是用户与数据库的接口,是应用程序可见到的数据描述。',
+        opts: ['内模式', '概念模式', '外模式', '模式'], ans: 2,
+        tip: '外模式（用户视图）是用户和应用程序看得到的那部分数据描述。' },
+      { id: 'db1-31', tag: '信息特征', q: '下面关于信息的特征描述中，错误的是（ ）。',
+        opts: ['信息是可以感知的', '信息是有时效性和有价值的', '信息源于物质或能量', '信息是可存储、加工、传递和不能再生的'], ans: 3,
+        tip: '信息可以复制再生、共享不损耗——【不能再生的】说法错误。' },
+      { id: 'db1-32', tag: '数据库特点', q: '数据库中数据具有_________、最小的冗余度和较高的独立性等特点。',
+        opts: ['数据结构化', '程序结构化', '数据模块化', '程序标准化'], ans: 0,
+        tip: '数据库系统特点：数据结构化、最小冗余、较高独立性、可共享。' },
+      { id: 'db1-33', tag: '属性类型⚠️', q: '属于属性类型的下列说法中，不正确的是（ ）。',
+        opts: ['绘制ER图是可以统一使用单线椭圆来表达，但是要避免相同含义的属性出现在多个属性中。', '派生属性有存在的必要性，要根据业务需要及属性值的变化频率进行决定，尽量避免使用派生属性。', '多值属性有存在的必要性，可以根据业务需要保留，或者转换为多个单值属性。', '复合属性可以根据业务需要进行保留或者消除。'], ans: 2,
+        tip: '⚠️争议题（官方答案未公布，当前为推断）：课件口径是多值的内容优先转【弱实体】，【拆成多个单值属性】是与之竞争的方法，故C最可能是错误项；若日后判卷公布答案请以此为准。' },
+      { id: 'db1-34', tag: '第一范式', q: '关于关系模式属性的说法中，正确的是______。',
+        opts: ['任何属性均可再分', '属性命名在该关系模式中可以不惟一', '以上都不是', '任何属性不可再分'], ans: 3,
+        tip: '第一范式要求属性原子、不可再分；属性命名在关系模式内必须唯一。' },
+      { id: 'db1-35', tag: '关系运算符', q: '能够根据条件对关系进行筛选的专门的关系运算符是____。',
+        opts: ['δ', 'ρ', '∏', 'θ'], ans: 0,
+        tip: 'σ选择（筛选行）、π投影（筛选列）、ρ改名、θ连接条件。' },
+      { id: 'db1-36', tag: 'DBMS', q: '计算机中支持数据库各种操作的软件系统叫__________。',
+        opts: ['操作系统', '数据库系统', '数据库管理系统', '命令系统'], ans: 2,
+        tip: 'DBMS是管理数据库的系统软件；数据库系统DBS=硬件+DBMS+数据库+人员。' },
+      { id: 'db1-37', tag: '概念模型优点', q: '关于概念模型的优点，下列说法最准确的是_____。',
+        opts: ['概念模型独立于E-R模型', '概念模型独立于DBMS', '概念模型独立于操作系统和DBMS', '概念模型独立于硬件设备'], ans: 2,
+        tip: '概念模型面向用户、贴近现实，独立于具体实现环境（OS、DBMS、硬件）。' },
+      { id: 'db1-38', tag: '集合运算', q: '有两个关系R和S，分别含有15个和10个元组，则在R∪S、R-S和R∩S中不可能出现的元组数据的情况是_______。',
+        opts: ['15,5,10', '18,7,7', '21,11,4', '25,15,0'], ans: 1,
+        tip: '恒等式：R-S元组数=15-R∩S元组数。B中∩=7则R-S应为8而非7，矛盾，不可能出现。' },
+      { id: 'db1-39', tag: '术语对应', q: '实体是信息世界中的术语，与之对应的数据库术语为_____。',
+        opts: ['记录', '文件', '数据库', '字段'], ans: 0,
+        tip: '实体实例对应记录（行）；实体型对应表结构；属性对应字段。' },
+      { id: 'db1-40', tag: '数据独立性', q: '下列关于数据库系统的数据独立性的理解中，最全面和最准确是________。',
+        opts: ['不会因为某些存储结构的变化而影响其他的存储结构', '不会因为数据的变化而影响应用程序', '不会因为存储策略的变化而影响存储结构', '不会因为系统数据存储结构与数据逻辑结构的变化而影响应用程序'], ans: 3,
+        tip: '数据独立性=应用程序与存储结构、逻辑结构双向解耦，D的表述最完整。' },
+      { id: 'db1-41', tag: '关系代数', q: '设关系R(A,B,C)和S(B,C,D)，下列各关系代数表达式肯定不成立的是_______。（说明：*表示自然连接）',
+        opts: ['ΠA(R)*ΠD(S)', 'R*S', 'ΠB(R)∩ΠB(S)', 'R∪S'], ans: 0,
+        tip: '⚠️口径争议题：课程答案为A（自然连接须有公共属性）。注意按标准并相容性理论，D的R∪S属性集不同同样不成立，本题存在双答案缺陷——考试时请按课程口径选A。' },
+      { id: 'db1-42', tag: '联系类型', q: '设一个仓库存放多种商品，同一种商品只能存放在一个仓库中，商品与仓库是______联系。',
+        opts: ['多对一', '多对多', '一对多', '一对一'], ans: 0,
+        tip: '一种商品只在一个仓库（1端），一个仓库存多种商品（n端），商品:仓库=n:1即多对一。' },
+      { id: 'db1-43', tag: '元组唯一性', q: '同一个关系中的任两个元组的值________。',
+        opts: ['必须全同', '不能全同', '可全同', '以上都不是'], ans: 1,
+        tip: '关系是元组的集合，集合内元素互不相同——任意两元组不能完全相同。' },
+      { id: 'db1-44', tag: '投影运算', q: '在关系代数中，对一个关系做投影操作后，新关系的元组个数______原来关系的元组个数。',
+        opts: ['大于', '小于', '小于或等于', '等于'], ans: 2,
+        tip: '投影会去掉重复列带来的重复行（结果仍是集合），元组数小于或等于原关系。' },
+      { id: 'db1-45', tag: '内模式', q: '在数据库三级模式结构中，描述数据库中数据组织与存储的是_____。',
+        opts: ['模式', '概念模式', '外模式', '内模式'], ans: 3,
+        tip: '内模式（存储模式）描述数据的物理组织和存储方式。' },
+      { id: 'db1-46', tag: 'DBMS功能', q: '数据库管理系统(DBMS)具有诸多功能，关于其主要功能的描述，最恰当的描述是_____。',
+        opts: ['应用数据库', '修改数据库', '保护数据库', '定义数据库'], ans: 3,
+        tip: 'DBMS功能首位是数据定义（DDL）——定义数据库、表、视图的结构。' },
+    ];
+
+    // 学习通两道多选题改编为单选变式（App为单选引擎）
+    var DB_U1_VAR = [
+      { id: 'db1v-47', tag: '数据模型三要素', q: '下列各项中，不属于数据模型组成三要素的是____。（学习通多选题改编）',
+        opts: ['数据结构', '数据操作', '数据字段', '完整性约束'], ans: 2,
+        tip: '原题为多选（应选数据结构+数据操作+完整性约束）。三要素不含【数据字段】。' },
+      { id: 'db1v-48', tag: 'E-R合并冲突', q: '下列各项中，不属于局部E-R图合并成全局E-R图时冲突类型的是____。（学习通多选题改编）',
+        opts: ['属性冲突', '命名冲突', '结构冲突', '语法冲突'], ans: 3,
+        tip: '原题为多选（应选属性冲突+命名冲突+结构冲突）。合并冲突没有【语法冲突】。' },
+    ];
+
     var ALLQ = {};
     BANK.forEach(function (b) { ALLQ[b.id] = b; });
     VARIANTS.forEach(function (v) { ALLQ[v.id] = v; });
     JZU_BANK.forEach(function (b) { ALLQ[b.id] = b; });
     JZU_VARIANTS.forEach(function (v) { ALLQ[v.id] = v; });
+    DB_U1.forEach(function (b) { ALLQ[b.id] = b; });
+    DB_U1_VAR.forEach(function (v) { ALLQ[v.id] = v; });
 
     // ===== 科目配置 =====
     var SUBJECTS = {
@@ -762,10 +919,42 @@
         practiceMain: '练习模式 · 真题 64 题', practiceSub: '不限时，答完看解析与出处',
         variantMain: '变式专练 · 71 题全覆盖', variantSub: '补码/异或/数制换数重练，防背答案',
         subtitle: '2022 后四套全考 + 17-18 / 19级 卷去重共 64 题 + 12 道换数变式 · 每次乱序'
+      },
+      db: {
+        name: '数据库原理与应用', sub: '单元测试 · 学习通',
+        modules: [
+          { id: 'u1', name: '单元测试一', sub: '概述、ER与关系',
+            bank: DB_U1, variants: DB_U1_VAR }
+        ],
+        examAll: true, examCount: 0, examMs: 15 * 60 * 1000,
+        perQSec: 45, quickCount: 15,
+        examSub: '到时强制收卷，还原真实考场压力',
+        quickSub: '碎片时间来一轮，保持手感',
+        practiceSub: '不限时，答完立即看解析与记忆点',
+        variantSub: '含2道由学习通多选题改编的单选变式',
+        subtitle: '单元测试一 46 道单选（对准学习通题号）+ 2 道多选改编变式 · 每次乱序'
       }
     };
     var curSub = 'servlet';
+    var curMod = 'all'; // 小板块：'all' 或某次作业的模块 id
     function curCfg() { return SUBJECTS[curSub]; }
+    function curModObj() {
+      var c = curCfg();
+      if (!c.modules || curMod === 'all') return null;
+      for (var i = 0; i < c.modules.length; i++) if (c.modules[i].id === curMod) return c.modules[i];
+      return null;
+    }
+    function curBank() {
+      var c = curCfg();
+      if (c.modules) {
+        var m = curModObj();
+        if (m) return { bank: m.bank, variants: m.variants || [] };
+        var b = [], v = [];
+        c.modules.forEach(function (mm) { b = b.concat(mm.bank); v = v.concat(mm.variants || []); });
+        return { bank: b, variants: v };
+      }
+      return { bank: c.bank, variants: c.variants || [] };
+    }
 
     // ===== 状态 =====
     var run = null; // {queue, idx, mode, correct, wrongIds, wrongDetail, answeredMs, cur:{q, order, qStart, answered, timerId, lockAdvance}}
@@ -841,8 +1030,8 @@
 
     // ===== 开始页 =====
     function subjectIds() {
-      var c = curCfg(); var s = {};
-      c.bank.concat(c.variants).forEach(function (q) { s[q.id] = 1; });
+      var bk = curBank(); var s = {};
+      bk.bank.concat(bk.variants).forEach(function (q) { s[q.id] = 1; });
       return s;
     }
     function savedForCurrent() {
@@ -890,22 +1079,56 @@
         b.type = 'button';
         b.className = 'btn' + (k === curSub ? ' active' : '');
         b.innerHTML = '<span>' + esc(s.name) + '</span><span class="sq-sub-name-sub">' + esc(s.sub) + '</span>';
-        b.addEventListener('click', function () { if (curSub !== k) { curSub = k; renderSubject(); } });
+        b.addEventListener('click', function () { if (curSub !== k) { curSub = k; curMod = 'all'; renderSubject(); } });
         box.appendChild(b);
       });
-      var c = curCfg();
+      var c = curCfg(), bk = curBank();
       $('sq-h2').textContent = c.name + ' · 刷题模拟';
-      $('sq-subtitle-line').textContent = c.subtitle;
-      $('sq-exam-main').textContent = c.examMain; $('sq-exam-sub').textContent = c.examSub;
-      $('sq-quick-main').textContent = c.quickMain; $('sq-quick-sub').textContent = c.quickSub;
-      $('sq-practice-main').textContent = c.practiceMain; $('sq-practice-sub').textContent = c.practiceSub;
-      $('sq-variant-main').textContent = c.variantMain; $('sq-variant-sub').textContent = c.variantSub;
+      var mbox = $('sq-modules');
+      if (c.modules) {
+        mbox.hidden = false; mbox.innerHTML = '';
+        var mk = document.createElement('button');
+        mk.type = 'button';
+        mk.className = 'btn' + (curMod === 'all' ? ' active' : '');
+        var totB = 0, totV = 0;
+        c.modules.forEach(function (mm) { totB += mm.bank.length; totV += (mm.variants || []).length; });
+        mk.innerHTML = '<span>全部作业</span><span class="sq-sub-name-sub">' + totB + ' 题 + ' + totV + ' 变式</span>';
+        mk.addEventListener('click', function () { curMod = 'all'; renderSubject(); });
+        mbox.appendChild(mk);
+        c.modules.forEach(function (mm) {
+          var mb = document.createElement('button');
+          mb.type = 'button';
+          mb.className = 'btn' + (curMod === mm.id ? ' active' : '');
+          mb.innerHTML = '<span>' + esc(mm.name) + '</span><span class="sq-sub-name-sub">' + mm.bank.length + ' 题 + ' + (mm.variants || []).length + ' 变式</span>';
+          mb.addEventListener('click', function () { curMod = mm.id; renderSubject(); });
+          mbox.appendChild(mb);
+        });
+        var min = Math.round(c.examMs / 60000);
+        $('sq-subtitle-line').textContent = c.subtitle + ' · ' + (curModObj() ? curModObj().name : '全部作业');
+        $('sq-exam-main').textContent = (c.examAll ? '全真模拟 · ' + bk.bank.length + ' 题 / ' + min + ' 分钟' : '全真模拟 · 抽 ' + c.examCount + ' 题 / ' + min + ' 分钟');
+        $('sq-exam-sub').textContent = c.examSub;
+        $('sq-quick-main').textContent = '单题计时快刷 · ' + c.quickCount + ' 题 × ' + c.perQSec + ' 秒';
+        $('sq-quick-sub').textContent = c.quickSub;
+        $('sq-practice-main').textContent = '练习模式 · ' + bk.bank.length + ' 题';
+        $('sq-practice-sub').textContent = c.practiceSub;
+        $('sq-variant-main').textContent = '变式专练 · ' + (bk.bank.length + bk.variants.length) + ' 题全覆盖';
+        $('sq-variant-sub').textContent = c.variantSub;
+      } else {
+        mbox.hidden = true;
+        $('sq-subtitle-line').textContent = c.subtitle;
+        $('sq-exam-main').textContent = c.examMain; $('sq-exam-sub').textContent = c.examSub;
+        $('sq-quick-main').textContent = c.quickMain; $('sq-quick-sub').textContent = c.quickSub;
+        $('sq-practice-main').textContent = c.practiceMain; $('sq-practice-sub').textContent = c.practiceSub;
+        $('sq-variant-main').textContent = c.variantMain; $('sq-variant-sub').textContent = c.variantSub;
+      }
       renderStartButtons();
+      document.getElementById('sq-chip-exam').textContent = Math.round(curCfg().examMs / 60000) + ' 分钟强制收卷';
+      document.getElementById('sq-chip-bank').textContent = bk.bank.length + ' 题题库';
     }
-    $('sq-btn-exam').addEventListener('click', function () { var c = curCfg(); startRun('full', c.examAll ? c.bank : shuffle(c.bank).slice(0, c.examCount)); });
-    $('sq-btn-quick').addEventListener('click', function () { var c = curCfg(); startRun('exam', shuffle(c.bank).slice(0, c.quickCount)); });
-    $('sq-btn-practice').addEventListener('click', function () { startRun('practice', curCfg().bank); });
-    $('sq-btn-variant').addEventListener('click', function () { var c = curCfg(); startRun('practice', c.bank.concat(c.variants)); });
+    $('sq-btn-exam').addEventListener('click', function () { var c = curCfg(), b = curBank(); startRun('full', c.examAll ? b.bank : shuffle(b.bank).slice(0, c.examCount)); });
+    $('sq-btn-quick').addEventListener('click', function () { var c = curCfg(), b = curBank(); startRun('exam', shuffle(b.bank).slice(0, c.quickCount)); });
+    $('sq-btn-practice').addEventListener('click', function () { startRun('practice', curBank().bank); });
+    $('sq-btn-variant').addEventListener('click', function () { var b = curBank(); startRun('practice', b.bank.concat(b.variants)); });
     $('sq-btn-wrong').addEventListener('click', function () {
       var list = savedForCurrent().map(function (id) { return ALLQ[id]; }).filter(Boolean);
       if (list.length) startDrill(list);
@@ -1268,7 +1491,9 @@
     function startTagPractice(tag) {
       var list = [];
       Object.keys(SUBJECTS).forEach(function (k) {
-        list = list.concat(SUBJECTS[k].bank, SUBJECTS[k].variants);
+        var s = SUBJECTS[k];
+        if (s.modules) { s.modules.forEach(function (mm) { list = list.concat(mm.bank, mm.variants || []); }); }
+        else { list = list.concat(s.bank, s.variants); }
       });
       list = list.filter(function (q) { return q.tag === tag; });
       if (list.length) startRun('practice', list);
@@ -1277,7 +1502,8 @@
     // ===== 背题速览：题干点击展开答案与记忆点，支持搜索 =====
     function renderReview(keyword) {
       var kw = (keyword || '').trim().toLowerCase();
-      var all = curCfg().bank.concat(curCfg().variants);
+      var bk0 = curBank();
+      var all = bk0.bank.concat(bk0.variants);
       var list = all.filter(function (q) {
         if (!kw) return true;
         var hay = (q.q + ' ' + q.tag + ' ' + q.opts[q.ans] + ' ' + q.tip).toLowerCase();
