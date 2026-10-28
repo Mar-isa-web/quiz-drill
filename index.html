@@ -739,7 +739,6 @@
     VARIANTS.forEach(function (v) { ALLQ[v.id] = v; });
     JZU_BANK.forEach(function (b) { ALLQ[b.id] = b; });
     JZU_VARIANTS.forEach(function (v) { ALLQ[v.id] = v; });
-    DS_BANK.forEach(function (b) { ALLQ[b.id] = b; });
 
     // ===== 数据结构题库（学习通作业） =====
     var DS_BANK = [
@@ -828,6 +827,8 @@
       { id: 593, sec: '线性表', tag: '顺序表连续性', q: "分配给顺序表的内存单元地址必须是连续的。", opts: ["对", "错"], ans: 0, tip: "顺序表用地址连续的存储单元依次存放元素，靠物理相邻体现逻辑关系，这是随机存取的基础。" },
       { id: 594, sec: '线性表', tag: '链表存储方式', q: "链表的数据元素通常被存储在一个数组中。", opts: ["错", "对"], ans: 0, tip: "链表结点通常在内存中分散存放，靠指针链接表达逻辑关系，不依赖数组（静态链表虽用数组模拟，但通常所说的链表指动态链表）。" }
     ];
+
+    DS_BANK.forEach(function (b) { ALLQ[b.id] = b; });
 
     // ===== 科目配置 =====
     var SUBJECTS = {
