@@ -207,12 +207,6 @@
     <div class="sq-hero">
       <div class="sq-appicon" aria-hidden="true">✓</div>
       <div class="sq-title"><h2 style="margin:0;">刷题模拟器</h2></div>
-      <div class="sq-subtitle" id="sq-home-line">选择科目进入刷题 · 成绩与错题自动保存 · 离线可用</div>
-      <div class="sq-chips">
-        <span class="sq-chip" id="sq-home-total">4 个科目</span>
-        <span class="sq-chip">错题本</span>
-        <span class="sq-chip">离线可用</span>
-      </div>
     </div>
     <div class="sq-subjects sq-home-list" id="sq-subjects"></div>
   </div>
@@ -223,13 +217,6 @@
     <div class="sq-hero">
       <div class="sq-appicon" aria-hidden="true">✓</div>
       <div class="sq-title"><h2 style="margin:0;" id="sq-h2">刷题模拟</h2></div>
-      <div class="sq-subtitle" id="sq-subtitle-line">核心 33 题（对准考题题号）+ 28 道变式题（覆盖其余子知识点）· 每次乱序</div>
-      <div class="sq-chips">
-        <span class="sq-chip" id="sq-chip-exam">8 分钟强制收卷</span>
-        <span class="sq-chip" id="sq-chip-bank">61 题题库</span>
-        <span class="sq-chip">错题本</span>
-        <span class="sq-chip">离线可用</span>
-      </div>
     </div>
     <div class="sq-subjects sq-modules-wrap" id="sq-modules" hidden></div>
     <div class="sq-start-btns">
@@ -243,8 +230,6 @@
       <button type="button" class="btn btn-ghost" id="sq-btn-review">背题速览</button>
       <button type="button" class="btn btn-ghost" id="sq-btn-stats">战况统计</button>
     </div>
-    <div class="text-small sq-subtitle sq-kbd-hint" style="margin-top:12px;">快捷键：数字 1–4 或字母 A–D 选答案，回车 / 空格 立即进下一题 · 全真模式答完自动跳题</div>
-    <div class="text-small sq-subtitle" style="margin-top:8px; text-align:center; opacity:.8;">当前版本 <strong>v1.7</strong> · 新增数据库科目（单元测试小板块） · 选项显示 A/B/C/D 字母即为最新版</div>
   </div>
 
   <!-- 答题页 -->
@@ -1375,13 +1360,10 @@
         var total = 0;
         if (s.modules) { s.modules.forEach(function (mm) { total += mm.bank.length + (mm.variants || []).length; }); }
         else { total = s.bank.length + (s.variants || []).length; }
-        b.innerHTML = '<span class="sq-home-main"><span class="sq-home-name">' + esc(s.name) + '</span><span class="sq-sub-name-sub">' + esc(s.sub) + '</span></span><span class="sq-home-side"><span class="sq-sub-name-sub">' + total + ' 题</span><span class="sq-home-chev">›</span></span>';
+        b.innerHTML = '<span class="sq-home-main"><span class="sq-home-name">' + esc(s.name) + '</span></span><span class="sq-home-side"><span class="sq-sub-name-sub">' + total + ' 题</span><span class="sq-home-chev">›</span></span>';
         b.addEventListener('click', function () { curSub = k; curMod = 'all'; renderSubject(); show('start'); window.scrollTo(0, 0); });
         box.appendChild(b);
       });
-      var subjTotal = Object.keys(SUBJECTS).length;
-    var homeTotal = $('sq-home-total');
-    if (homeTotal) homeTotal.textContent = subjTotal + ' 个科目';
     var c = curCfg(), bk = curBank();
       $('sq-h2').textContent = c.name + ' · 刷题模拟';
       var mbox = $('sq-modules');
@@ -1404,7 +1386,6 @@
           mbox.appendChild(mb);
         });
         var min = Math.round(c.examMs / 60000);
-        $('sq-subtitle-line').textContent = c.subtitle + ' · ' + (curModObj() ? curModObj().name : '全部作业');
         $('sq-exam-main').textContent = (c.examAll ? '全真模拟 · ' + bk.bank.length + ' 题 / ' + min + ' 分钟' : '全真模拟 · 抽 ' + c.examCount + ' 题 / ' + min + ' 分钟');
         $('sq-exam-sub').textContent = c.examSub;
         $('sq-quick-main').textContent = '单题计时快刷 · ' + c.quickCount + ' 题 × ' + c.perQSec + ' 秒';
@@ -1415,15 +1396,12 @@
         $('sq-variant-sub').textContent = c.variantSub;
       } else {
         mbox.hidden = true;
-        $('sq-subtitle-line').textContent = c.subtitle;
         $('sq-exam-main').textContent = c.examMain; $('sq-exam-sub').textContent = c.examSub;
         $('sq-quick-main').textContent = c.quickMain; $('sq-quick-sub').textContent = c.quickSub;
         $('sq-practice-main').textContent = c.practiceMain; $('sq-practice-sub').textContent = c.practiceSub;
         $('sq-variant-main').textContent = c.variantMain; $('sq-variant-sub').textContent = c.variantSub;
       }
       renderStartButtons();
-      document.getElementById('sq-chip-exam').textContent = Math.round(curCfg().examMs / 60000) + ' 分钟强制收卷';
-      document.getElementById('sq-chip-bank').textContent = bk.bank.length + ' 题题库';
     }
     $('sq-btn-exam').addEventListener('click', function () { var c = curCfg(), b = curBank(); startRun('full', c.examAll ? b.bank : shuffle(b.bank).slice(0, c.examCount)); });
     $('sq-btn-quick').addEventListener('click', function () { var c = curCfg(), b = curBank(); startRun('exam', shuffle(b.bank).slice(0, c.quickCount)); });
