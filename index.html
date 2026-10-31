@@ -1321,13 +1321,13 @@
         btn.textContent = '错题歼灭（' + saved.length + ' 题 · 连刷到清零）';
       } else {
         btn.hidden = true;
+      }
       var totA = 0;
       Object.keys(STATS).forEach(function (qid) { totA += STATS[qid][0]; });
       var foot = $('sq-home-foot');
       if (foot) {
         var wrongN = loadSaved().length;
         foot.textContent = totA > 0 ? ('累计刷题 ' + totA + ' 次 · 错题本 ' + wrongN + ' 题') : ('今天是第 ' + (totA + 1) + ' 题开始的好日子 · 刷起来');
-      }
       }
     }
     var TOTAL_MS = 8 * 60 * 1000; // 全真模式总时长（开始一局时按科目刷新）
