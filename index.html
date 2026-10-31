@@ -1559,6 +1559,9 @@
     function recordWrong(q, picked) {
       run.wrongIds.push(q.id);
       run.wrongDetail.push({ id: q.id, tag: q.tag, q: q.q, picked: picked, ansText: q.opts[q.ans], tip: q.tip });
+      if (!run.wrongAllTime) run.wrongAllTime = loadSaved();
+      if (run.wrongAllTime.indexOf(q.id) === -1) run.wrongAllTime.push(q.id);
+      saveState();
     }
 
     function showFeedback(right, prefix) {
@@ -1717,7 +1720,12 @@
       show('start');
       window.scrollTo(0, 0);
     }
-    $('sq-btn-exit').addEventListener('click', goHome);
+    $('sq-btn-exit').addEventListener('click', function () {
+      if (run && !run.done) {
+        if (!window.confirm('确定要退出本次刷题吗？未完成的进度将丢失。')) return;
+      }
+      goHome();
+    });
     $('sq-btn-home').addEventListener('click', goHome);
     window.sqHandleBack = function () {
       if (!screens.start.hidden) return false;
