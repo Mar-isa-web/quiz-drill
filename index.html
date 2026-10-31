@@ -1055,9 +1055,6 @@
     JZU_VARIANTS.forEach(function (v) { ALLQ[v.id] = v; });
     DB_U1.forEach(function (b) { ALLQ[b.id] = b; });
     DB_U1_VAR.forEach(function (v) { ALLQ[v.id] = v; });
-    DS_XU.forEach(function (b) { ALLQ[b.id] = b; });
-    DS_CH1.forEach(function (b) { ALLQ[b.id] = b; });
-    DS_LIST.forEach(function (b) { ALLQ[b.id] = b; });
 
     // ===== 数据结构题库（学习通作业）=====
     var DS_XU = [
@@ -1151,6 +1148,9 @@
       { id: 594, sec: '线性表', tag: '链表存储方式', q: "链表的数据元素通常被存储在一个数组中。", opts: ["错", "对"], ans: 0, tip: "链表的结点通常在内存中分散存放，靠指针链接表达逻辑关系，不需要也不依赖数组。（静态链表虽借助数组模拟，但通常所说的链表指动态链表。）" }
     ];
 
+    DS_XU.forEach(function (b) { ALLQ[b.id] = b; });
+    DS_CH1.forEach(function (b) { ALLQ[b.id] = b; });
+    DS_LIST.forEach(function (b) { ALLQ[b.id] = b; });
     // ===== 科目配置 =====
     var SUBJECTS = {
       servlet: {
