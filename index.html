@@ -185,6 +185,9 @@
     #servlet-quiz-app .sq-modules-wrap .btn { flex:1 1 150px; min-height:46px; flex-direction:column; gap:2px; padding:6px 8px; }
     #servlet-quiz-app .sq-sub-name-sub { font-size:11px; font-weight:400; color:var(--muted-foreground); line-height:1.35; word-break:break-word; }
     #servlet-quiz-app .sq-home-list { display:flex; flex-direction:column; gap:10px; margin-top:16px; }
+    #servlet-quiz-app .sq-home-list .btn { min-height:74px; }
+    #servlet-quiz-app #sq-home { display:flex; flex-direction:column; min-height:calc(100vh - 28px); }
+    #servlet-quiz-app .sq-home-foot { margin-top:auto; padding-top:16px; text-align:center; }
     #servlet-quiz-app .sq-home-list .btn { flex:none; width:100%; min-height:66px; flex-direction:row; align-items:center; justify-content:space-between; text-align:left; gap:10px; padding:12px 14px; }
     #servlet-quiz-app .sq-home-list .btn.active { border-color:var(--border); box-shadow:none; }
     #servlet-quiz-app .sq-home-main { display:flex; flex-direction:column; gap:3px; min-width:0; }
@@ -209,6 +212,7 @@
       <div class="sq-title"><h2 style="margin:0;">刷题模拟器</h2></div>
     </div>
     <div class="sq-subjects sq-home-list" id="sq-subjects"></div>
+    <div class="sq-subtitle sq-home-foot" id="sq-home-foot">刷起来 ·</div>
   </div>
 
   <!-- 开始页（第二界面：科目内） -->
@@ -1325,6 +1329,13 @@
         btn.textContent = '错题歼灭（' + saved.length + ' 题 · 连刷到清零）';
       } else {
         btn.hidden = true;
+      var totA = 0;
+      Object.keys(STATS).forEach(function (qid) { totA += STATS[qid][0]; });
+      var foot = $('sq-home-foot');
+      if (foot) {
+        var wrongN = loadSaved().length;
+        foot.textContent = totA > 0 ? ('累计刷题 ' + totA + ' 次 · 错题本 ' + wrongN + ' 题') : ('今天是第 ' + (totA + 1) + ' 题开始的好日子 · 刷起来');
+      }
       }
     }
     var TOTAL_MS = 8 * 60 * 1000; // 全真模式总时长（开始一局时按科目刷新）
@@ -1360,7 +1371,7 @@
         var total = 0;
         if (s.modules) { s.modules.forEach(function (mm) { total += mm.bank.length + (mm.variants || []).length; }); }
         else { total = s.bank.length + (s.variants || []).length; }
-        b.innerHTML = '<span class="sq-home-main"><span class="sq-home-name">' + esc(s.name) + '</span></span><span class="sq-home-side"><span class="sq-sub-name-sub">' + total + ' 题</span><span class="sq-home-chev">›</span></span>';
+        b.innerHTML = '<span class="sq-home-main"><span class="sq-home-name">' + esc(s.name) + '</span><span class="sq-sub-name-sub">' + esc(s.sub) + '</span></span><span class="sq-home-side"><span class="sq-sub-name-sub">' + total + ' 题</span><span class="sq-home-chev">›</span></span>';
         b.addEventListener('click', function () { curSub = k; curMod = 'all'; renderSubject(); show('start'); window.scrollTo(0, 0); });
         box.appendChild(b);
       });
