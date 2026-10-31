@@ -184,6 +184,15 @@
     #servlet-quiz-app .sq-modules-wrap { flex-wrap:wrap; margin-top:8px; }
     #servlet-quiz-app .sq-modules-wrap .btn { flex:1 1 150px; min-height:46px; flex-direction:column; gap:2px; padding:6px 8px; }
     #servlet-quiz-app .sq-sub-name-sub { font-size:11px; font-weight:400; color:var(--muted-foreground); line-height:1.35; word-break:break-word; }
+    #servlet-quiz-app .sq-home-list { display:flex; flex-direction:column; gap:10px; margin-top:16px; }
+    #servlet-quiz-app .sq-home-list .btn { flex:none; width:100%; min-height:66px; flex-direction:row; align-items:center; justify-content:space-between; text-align:left; gap:10px; padding:12px 14px; }
+    #servlet-quiz-app .sq-home-list .btn.active { border-color:var(--border); box-shadow:none; }
+    #servlet-quiz-app .sq-home-main { display:flex; flex-direction:column; gap:3px; min-width:0; }
+    #servlet-quiz-app .sq-home-name { font-size:15px; font-weight:600; }
+    #servlet-quiz-app .sq-home-side { display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex:none; }
+    #servlet-quiz-app .sq-home-chev { color:var(--muted-foreground); font-size:18px; line-height:1; }
+    #servlet-quiz-app .sq-backbar { margin-bottom:8px; display:flex; }
+    #servlet-quiz-app .sq-btn-back { min-height:34px; padding:4px 12px; font-size:13px; }
     #servlet-quiz-app .sq-start-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
     #servlet-quiz-app .sq-start-btns .btn { width: 100%; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px; min-height: 58px; padding: 9px 16px; }
     #servlet-quiz-app .sq-btn-sub { font-size: 12px; font-weight: 400; color: var(--muted-foreground); }
@@ -193,8 +202,24 @@
     }
   </style>
 
-  <!-- 开始页 -->
+  <!-- 科目选择（第一界面） -->
+  <div class="sq-screen card sq-cardpad" id="sq-home">
+    <div class="sq-hero">
+      <div class="sq-appicon" aria-hidden="true">✓</div>
+      <div class="sq-title"><h2 style="margin:0;">刷题模拟器</h2></div>
+      <div class="sq-subtitle" id="sq-home-line">选择科目进入刷题 · 成绩与错题自动保存 · 离线可用</div>
+      <div class="sq-chips">
+        <span class="sq-chip" id="sq-home-total">4 个科目</span>
+        <span class="sq-chip">错题本</span>
+        <span class="sq-chip">离线可用</span>
+      </div>
+    </div>
+    <div class="sq-subjects sq-home-list" id="sq-subjects"></div>
+  </div>
+
+  <!-- 开始页（第二界面：科目内） -->
   <div class="sq-screen card sq-cardpad" id="sq-start">
+    <div class="sq-backbar"><button type="button" class="btn btn-ghost sq-btn-back" id="sq-btn-back">‹ 返回科目</button></div>
     <div class="sq-hero">
       <div class="sq-appicon" aria-hidden="true">✓</div>
       <div class="sq-title"><h2 style="margin:0;" id="sq-h2">刷题模拟</h2></div>
@@ -206,7 +231,6 @@
         <span class="sq-chip">离线可用</span>
       </div>
     </div>
-    <div class="sq-subjects" id="sq-subjects"></div>
     <div class="sq-subjects sq-modules-wrap" id="sq-modules" hidden></div>
     <div class="sq-start-btns">
       <button type="button" class="btn btn-primary" id="sq-btn-exam"><span id="sq-exam-main">全真模拟 · 33 题 / 8 分钟</span><span class="sq-btn-sub" id="sq-exam-sub">到时强制收卷，还原真实考场压力</span></button>
@@ -1230,7 +1254,7 @@
     var run = null; // {queue, idx, mode, correct, wrongIds, wrongDetail, answeredMs, cur:{q, order, qStart, answered, timerId, lockAdvance}}
 
     var $ = function (id) { return document.getElementById(id); };
-    var screens = { start: $('sq-start'), quiz: $('sq-quiz'), result: $('sq-result'), stats: $('sq-stats'), review: $('sq-review') };
+    var screens = { home: $('sq-home'), start: $('sq-start'), quiz: $('sq-quiz'), result: $('sq-result'), stats: $('sq-stats'), review: $('sq-review') };
     function show(name) {
       Object.keys(screens).forEach(function (k) { screens[k].hidden = (k !== name); });
     }
@@ -1348,11 +1372,17 @@
         var b = document.createElement('button');
         b.type = 'button';
         b.className = 'btn' + (k === curSub ? ' active' : '');
-        b.innerHTML = '<span>' + esc(s.name) + '</span><span class="sq-sub-name-sub">' + esc(s.sub) + '</span>';
-        b.addEventListener('click', function () { if (curSub !== k) { curSub = k; curMod = 'all'; renderSubject(); } });
+        var total = 0;
+        if (s.modules) { s.modules.forEach(function (mm) { total += mm.bank.length + (mm.variants || []).length; }); }
+        else { total = s.bank.length + (s.variants || []).length; }
+        b.innerHTML = '<span class="sq-home-main"><span class="sq-home-name">' + esc(s.name) + '</span><span class="sq-sub-name-sub">' + esc(s.sub) + '</span></span><span class="sq-home-side"><span class="sq-sub-name-sub">' + total + ' 题</span><span class="sq-home-chev">›</span></span>';
+        b.addEventListener('click', function () { curSub = k; curMod = 'all'; renderSubject(); show('start'); window.scrollTo(0, 0); });
         box.appendChild(b);
       });
-      var c = curCfg(), bk = curBank();
+      var subjTotal = Object.keys(SUBJECTS).length;
+    var homeTotal = $('sq-home-total');
+    if (homeTotal) homeTotal.textContent = subjTotal + ' 个科目';
+    var c = curCfg(), bk = curBank();
       $('sq-h2').textContent = c.name + ' · 刷题模拟';
       var mbox = $('sq-modules');
       if (c.modules) {
@@ -1407,6 +1437,7 @@
     $('sq-btn-stats').addEventListener('click', function () { renderStats(); show('stats'); });
     $('sq-stats-back').addEventListener('click', goHome);
     $('sq-review-back').addEventListener('click', goHome);
+    $('sq-btn-back').addEventListener('click', function () { show('home'); window.scrollTo(0, 0); });
     $('sq-review-search').addEventListener('input', function () { renderReview(this.value); });
     $('sq-review-expand').addEventListener('click', function () { setReviewOpen(true); });
     $('sq-review-collapse').addEventListener('click', function () { setReviewOpen(false); });
@@ -1818,6 +1849,8 @@
 
     renderSubject();
     renderStartButtons();
+    show('home');
+    window.scrollTo(0, 0);
   })();
   </script>
 </div>
