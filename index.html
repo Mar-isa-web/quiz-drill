@@ -1709,9 +1709,16 @@
     });
     $('sq-btn-home').addEventListener('click', goHome);
     window.sqHandleBack = function () {
-      if (!screens.start.hidden) return false;
-      goHome();
-      return true;
+      if (!screens.quiz.hidden || !screens.result.hidden) {
+        if (run && !run.done) {
+          if (!window.confirm('确定要退出本次刷题吗？未完成的进度将丢失。')) return true;
+        }
+        goHome();
+        return true;
+      }
+      if (!screens.stats.hidden || !screens.review.hidden) { goHome(); return true; }
+      if (!screens.start.hidden) { show('home'); window.scrollTo(0, 0); return true; }
+      return false;
     };
 
     // ===== 错题歼灭：错题连刷，答错重新入队，答对清零 =====
